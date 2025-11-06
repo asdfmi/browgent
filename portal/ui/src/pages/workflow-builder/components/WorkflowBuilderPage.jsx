@@ -13,8 +13,8 @@ import {
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ExecutionViewerModal from "../../../components/ExecutionViewerModal.jsx";
 import { useWorkflowRun } from "../../../hooks/useWorkflowRun.js";
-import StepEditor from "./StepEditor.jsx";
-import WorkflowCanvas from "./WorkflowCanvas.jsx";
+import WorkflowStepList from "./WorkflowStepList.jsx";
+import StepDetailPanel from "./StepDetailPanel.jsx";
 import { useWorkflowBuilderForm } from "../hooks/useWorkflowBuilderForm.js";
 import { buildPayload, formatApiError, getBuilderContext } from "../utils/workflowBuilder.js";
 import { HttpError } from "../../../api/client.js";
@@ -44,7 +44,6 @@ export default function WorkflowBuilderPage() {
     syncFromWorkflow,
   } = useWorkflowBuilderForm(workflowState.data);
   const [isViewerOpen, setViewerOpen] = useState(false);
-  const [isEditorOpen, setEditorOpen] = useState(false);
   const [isSaving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -61,19 +60,10 @@ export default function WorkflowBuilderPage() {
   const loadError = workflowState.error;
   const runError = runState.error;
   const viewerSteps = useMemo(() => form.steps, [form.steps]);
-  const selectedStepKey = selectedStep?.stepKey ?? "";
   const activeStepKey = typeof currentStepIndex === "number"
     ? form.steps[currentStepIndex]?.stepKey ?? ""
     : "";
   const canDeleteStep = selectedIndex >= 0 && form.steps.length > 1;
-
-  const openEditorForIndex = useCallback((index) => {
-    if (typeof index === "number" && index >= 0) {
-      handleSelectStep(index);
-      setSaveError("");
-      setEditorOpen(true);
-    }
-  }, [handleSelectStep, setEditorOpen, setSaveError]);
 
   const persistWorkflow = useCallback(async (nextForm) => {
     if (!workflowId || !nextForm) return false;
@@ -124,21 +114,18 @@ export default function WorkflowBuilderPage() {
 
   const handleDeleteSelectedStep = useCallback(async () => {
     if (selectedIndex < 0) return;
+    const step = form.steps[selectedIndex];
+    const label = step?.label || step?.stepKey || `step ${selectedIndex + 1}`;
+    if (!window.confirm(`Delete ${label}?`)) return;
     const nextForm = handleRemoveStep(selectedIndex);
     if (!nextForm) return;
-    const ok = await persistWorkflow(nextForm);
-    if (ok) {
-      setEditorOpen(false);
-    }
-  }, [handleRemoveStep, persistWorkflow, selectedIndex, setEditorOpen]);
+    await persistWorkflow(nextForm);
+  }, [form.steps, handleRemoveStep, persistWorkflow, selectedIndex]);
 
   const handleAddStepAndEdit = useCallback(() => {
     handleAddStep();
-    setTimeout(() => {
-      setSaveError("");
-      setEditorOpen(true);
-    }, 0);
-  }, [handleAddStep, setEditorOpen, setSaveError]);
+    setSaveError("");
+  }, [handleAddStep]);
 
   const handleRefreshWorkflow = useCallback(() => {
     reloadWorkflow().then((result) => {
@@ -147,6 +134,11 @@ export default function WorkflowBuilderPage() {
       }
     });
   }, [reloadWorkflow, syncFromWorkflow]);
+
+  const handleSelectStepFromList = useCallback((index) => {
+    setSaveError("");
+    handleSelectStep(index);
+  }, [handleSelectStep]);
 
   if (!workflowId) {
     return (
@@ -203,42 +195,19 @@ export default function WorkflowBuilderPage() {
   return (
     <Box
       sx={{
-        position: "relative",
-        width: "100%",
-        height: "100vh",
-        overflow: "hidden",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
         bgcolor: "background.default",
       }}
     >
-      <WorkflowCanvas
-        steps={form.steps}
-        selectedStepKey={selectedStepKey}
-        activeStepKey={activeStepKey}
-        startStepId={form.startStepId}
-        onSelectStep={openEditorForIndex}
-      />
-
-      <Box
-        sx={{
-          position: "absolute",
-          top: { xs: 12, md: 20 },
-          left: { xs: 12, md: 20 },
-          zIndex: 10,
-          pointerEvents: "none",
-        }}
-      >
+      <Box sx={{ px: { xs: 2, md: 4 }, pt: { xs: 2, md: 4 } }}>
         <Paper
           elevation={5}
-          sx={{
-            px: 2,
-            py: 1.5,
-            borderRadius: 2,
-            pointerEvents: "auto",
-            minWidth: 280,
-          }}
+          sx={{ px: 3, py: 2.5, borderRadius: 3 }}
         >
           <Stack spacing={1.5}>
-            <Stack direction="row" alignItems="baseline" spacing={1}>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "flex-start", sm: "baseline" }}>
               <Typography variant="h6" noWrap>
                 {form.title || "Untitled workflow"}
               </Typography>
@@ -285,6 +254,33 @@ export default function WorkflowBuilderPage() {
         </Paper>
       </Box>
 
+      <Box
+        sx={{
+          flex: 1,
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          minHeight: 0,
+          mt: { xs: 2, md: 3 },
+        }}
+      >
+        <WorkflowStepList
+          steps={form.steps}
+          selectedIndex={selectedIndex}
+          startStepId={form.startStepId}
+          activeStepKey={activeStepKey}
+          onSelectStep={handleSelectStepFromList}
+          onAddStep={handleAddStepAndEdit}
+        />
+        <StepDetailPanel
+          step={selectedStep}
+          onSave={handleSaveStep}
+          onDelete={handleDeleteSelectedStep}
+          canDelete={canDeleteStep}
+          saving={isSaving}
+          error={saveError}
+        />
+      </Box>
+
       <ExecutionViewerModal
         open={isViewerOpen}
         onClose={() => setViewerOpen(false)}
@@ -294,16 +290,6 @@ export default function WorkflowBuilderPage() {
         runState={runState}
         steps={viewerSteps}
         currentStepIndex={currentStepIndex}
-      />
-      <StepEditor
-        open={isEditorOpen}
-        step={selectedStep}
-        onSave={handleSaveStep}
-        onDelete={handleDeleteSelectedStep}
-        canDelete={canDeleteStep}
-        onClose={() => setEditorOpen(false)}
-        saving={isSaving}
-        error={saveError}
       />
     </Box>
   );

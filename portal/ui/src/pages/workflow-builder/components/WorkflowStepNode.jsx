@@ -1,18 +1,19 @@
 import PropTypes from "prop-types";
 import { alpha } from "@mui/material/styles";
 import { Box, Chip, Stack, Typography } from "@mui/material";
-import { Handle, Position } from "reactflow";
 
-export default function WorkflowStepNode({ data }) {
-  const {
-    label,
-    type,
-    description,
-    isSelected,
-    isActive,
-    isStart,
-    index,
-  } = data;
+export default function WorkflowStepNode({
+  step,
+  index,
+  isStart,
+  isSelected,
+  isActive,
+  onSelect,
+}) {
+  const label = step.label?.trim() || step.stepKey || `Step ${index + 1}`;
+  const description = step.description || "";
+  const next = step.nextStepKey || "";
+  const exit = step.exitStepKey || "";
 
   const borderColor = isActive
     ? "secondary.main"
@@ -24,6 +25,10 @@ export default function WorkflowStepNode({ data }) {
     if (isActive) return alpha(theme.palette.secondary.light, 0.18);
     if (isSelected) return alpha(theme.palette.primary.light, 0.16);
     return theme.palette.background.paper;
+  };
+
+  const handleClick = () => {
+    onSelect?.();
   };
 
   return (
@@ -39,10 +44,22 @@ export default function WorkflowStepNode({ data }) {
         minWidth: 200,
         fontFamily: "inherit",
         cursor: "pointer",
+        transition: "box-shadow 120ms ease, transform 120ms ease",
+        "&:hover": {
+          boxShadow: 6,
+          transform: "translateY(-2px)",
+        },
+      }}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleClick();
+        }
       }}
     >
-      <Handle type="target" position={Position.Top} />
-      <Handle type="source" position={Position.Bottom} />
       <Stack spacing={0.5}>
         <Stack direction="row" spacing={1} alignItems="center">
           <Typography variant="subtitle2" noWrap>
@@ -50,7 +67,7 @@ export default function WorkflowStepNode({ data }) {
           </Typography>
           <Chip
             size="small"
-            label={type}
+            label={step.type}
             color="default"
             sx={{ textTransform: "uppercase", fontSize: "0.7rem" }}
           />
@@ -68,6 +85,19 @@ export default function WorkflowStepNode({ data }) {
             {description}
           </Typography>
         ) : null}
+        <Typography variant="caption" color="text.secondary" noWrap>
+          Key: {step.stepKey || "-"}
+        </Typography>
+        {next ? (
+          <Typography variant="caption" color="text.secondary" noWrap>
+            Next: {next}
+          </Typography>
+        ) : null}
+        {exit ? (
+          <Typography variant="caption" color="text.secondary" noWrap>
+            Exit: {exit}
+          </Typography>
+        ) : null}
         <Typography variant="caption" color="text.disabled">
           Step #{index + 1}
         </Typography>
@@ -77,13 +107,24 @@ export default function WorkflowStepNode({ data }) {
 }
 
 WorkflowStepNode.propTypes = {
-  data: PropTypes.shape({
-    label: PropTypes.string.isRequired,
+  step: PropTypes.shape({
+    stepKey: PropTypes.string,
+    label: PropTypes.string,
     type: PropTypes.string.isRequired,
     description: PropTypes.string,
-    isSelected: PropTypes.bool,
-    isActive: PropTypes.bool,
-    isStart: PropTypes.bool,
-    index: PropTypes.number.isRequired,
+    nextStepKey: PropTypes.string,
+    exitStepKey: PropTypes.string,
   }).isRequired,
+  index: PropTypes.number.isRequired,
+  isStart: PropTypes.bool,
+  isSelected: PropTypes.bool,
+  isActive: PropTypes.bool,
+  onSelect: PropTypes.func,
+};
+
+WorkflowStepNode.defaultProps = {
+  isStart: false,
+  isSelected: false,
+  isActive: false,
+  onSelect: null,
 };
