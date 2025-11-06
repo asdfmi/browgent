@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { HttpError } from "../api/client.js";
+import { getWorkflow, runWorkflow } from "../api/workflows.js";
 
 const MAX_LOG_LENGTH = 100;
 
@@ -25,16 +27,22 @@ export function useWorkflowRun(workflowId) {
     }
     setWorkflowState((prev) => ({ ...prev, loading: true, error: "" }));
     try {
-      const res = await fetch(`/api/workflows/${normalizedId}`, signal ? { signal } : undefined);
-      if (!res.ok) throw new Error("Failed to load workflow");
-      const payload = await res.json();
+      const payload = await getWorkflow(normalizedId, signal ? { signal } : undefined);
       setWorkflowState({ loading: false, data: payload.data, error: "" });
       return { ok: true, data: payload.data };
     } catch (error) {
       if (signal?.aborted) {
         return { ok: false, aborted: true };
       }
-      const message = error instanceof Error ? error.message : "Unknown error";
+      let message = "Unknown error";
+      if (error instanceof HttpError) {
+        const details = error.data && typeof error.data === "object"
+          ? (error.data.error || error.data.message)
+          : null;
+        message = details || error.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
       if (!signal?.aborted) {
         setWorkflowState({ loading: false, data: null, error: message });
       }
@@ -105,12 +113,7 @@ export function useWorkflowRun(workflowId) {
     setCurrentStepIndex(null);
 
     try {
-      const res = await fetch(`/api/workflows/${normalizedId}/run`, { method: "POST" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.error ?? "Failed to run workflow");
-      }
-      const payload = await res.json();
+      const payload = await runWorkflow(normalizedId);
       const runId = String(payload.runId || "");
       if (!runId) throw new Error("runId is missing in response");
       currentRunIdRef.current = runId;
@@ -137,7 +140,15 @@ export function useWorkflowRun(workflowId) {
       }
       return { ok: true };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      let message = "Unknown error";
+      if (error instanceof HttpError) {
+        const details = error.data && typeof error.data === "object"
+          ? (error.data.error || error.data.message)
+          : null;
+        message = details || error.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
       setRunState({ status: "idle", runId: null, error: message });
       return { ok: false, error: message };
     }

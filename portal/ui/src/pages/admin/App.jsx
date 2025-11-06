@@ -24,6 +24,14 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import NavBar from "../../components/NavBar.jsx";
+import { HttpError } from "../../api/client.js";
+import {
+  createRecord,
+  deleteRecord,
+  listRecords,
+  listTables,
+  updateRecord,
+} from "../../api/admin.js";
 
 function TableSelector({ tables, active, onSelect }) {
   return (
@@ -175,16 +183,21 @@ export default function AdminApp() {
 
   const fetchTables = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/tables");
-      if (!res.ok) throw new Error("failed_to_fetch_tables");
-      const payload = await res.json();
+      const payload = await listTables();
       const list = Array.isArray(payload.tables) ? payload.tables : [];
       setTables(list);
       if (list.length > 0 && !activeTable) {
         setActiveTable(list[0].name);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed_to_fetch_tables");
+      if (err instanceof HttpError) {
+        const msg = err.data && typeof err.data === "object"
+          ? (err.data.error || err.data.message)
+          : null;
+        setError(msg || err.message || "failed_to_fetch_tables");
+      } else {
+        setError(err instanceof Error ? err.message : "failed_to_fetch_tables");
+      }
     }
   }, [activeTable]);
 
@@ -200,12 +213,17 @@ export default function AdminApp() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/admin/${tableName}`);
-      if (!res.ok) throw new Error("failed_to_fetch_records");
-      const payload = await res.json();
+      const payload = await listRecords(tableName);
       setRecords(Array.isArray(payload.data) ? payload.data : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed_to_fetch_records");
+      if (err instanceof HttpError) {
+        const msg = err.data && typeof err.data === "object"
+          ? (err.data.error || err.data.message)
+          : null;
+        setError(msg || err.message || "failed_to_fetch_records");
+      } else {
+        setError(err instanceof Error ? err.message : "failed_to_fetch_records");
+      }
     } finally {
       setLoading(false);
     }
@@ -236,11 +254,17 @@ export default function AdminApp() {
     const id = record?.[activeMeta.primaryKey];
     if (!window.confirm(`Delete record ${id}?`)) return;
     try {
-      const res = await fetch(`/api/admin/${activeMeta.name}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("failed_to_delete_record");
+      await deleteRecord(activeMeta.name, id);
       fetchRecords(activeMeta.name);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed_to_delete_record");
+      if (err instanceof HttpError) {
+        const msg = err.data && typeof err.data === "object"
+          ? (err.data.error || err.data.message)
+          : null;
+        setError(msg || err.message || "failed_to_delete_record");
+      } else {
+        setError(err instanceof Error ? err.message : "failed_to_delete_record");
+      }
     }
   }, [activeMeta, fetchRecords]);
 
@@ -256,21 +280,22 @@ export default function AdminApp() {
     setSaving(true);
     setEditorError("");
     try {
-      const method = editor.mode === "edit" ? "PUT" : "POST";
-      const idSegment = editor.mode === "edit" ? `/${editor.id}` : "";
-      const res = await fetch(`/api/admin/${editor.table}${idSegment}`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: parsed }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload?.error || "failed_to_save_record");
+      if (editor.mode === "edit") {
+        await updateRecord(editor.table, editor.id, parsed);
+      } else {
+        await createRecord(editor.table, parsed);
       }
       closeEditor();
       fetchRecords(editor.table);
     } catch (err) {
-      setEditorError(err instanceof Error ? err.message : "failed_to_save_record");
+      if (err instanceof HttpError) {
+        const msg = err.data && typeof err.data === "object"
+          ? (err.data.error || err.data.message)
+          : null;
+        setEditorError(msg || err.message || "failed_to_save_record");
+      } else {
+        setEditorError(err instanceof Error ? err.message : "failed_to_save_record");
+      }
     } finally {
       setSaving(false);
     }

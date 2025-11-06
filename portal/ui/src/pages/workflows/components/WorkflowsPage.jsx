@@ -9,6 +9,11 @@ import {
   Divider,
   Button,
 } from "@mui/material";
+import { HttpError } from "../../../api/client.js";
+import {
+  createDraftWorkflow,
+  listWorkflows,
+} from "../../../api/workflows.js";
 
 const initialState = { loading: true, data: [], error: "" };
 
@@ -22,14 +27,20 @@ export default function WorkflowsPage() {
     const load = async () => {
       setState(initialState);
       try {
-        const res = await fetch("/api/workflows", { signal: controller.signal });
-        if (!res.ok) throw new Error("Failed to load workflows");
-        const payload = await res.json();
+        const payload = await listWorkflows({ signal: controller.signal });
         const rows = Array.isArray(payload.data) ? payload.data : [];
         setState({ loading: false, data: rows, error: "" });
       } catch (error) {
         if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "Unknown error";
+        let message = "Unknown error";
+        if (error instanceof HttpError) {
+          const details = error.data && typeof error.data === "object"
+            ? (error.data.error || error.data.message)
+            : null;
+          message = details || error.message;
+        } else if (error instanceof Error) {
+          message = error.message;
+        }
         setState({ loading: false, data: [], error: message });
       }
     };
@@ -41,12 +52,7 @@ export default function WorkflowsPage() {
     setCreating(true);
     setCreateError("");
     try {
-      const res = await fetch("/api/workflows/draft", { method: "POST" });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.error || "Failed to create draft workflow");
-      }
-      const payload = await res.json();
+      const payload = await createDraftWorkflow();
       const id = payload?.data?.id;
       if (id) {
         window.location.href = `/workflow/${id}`;
@@ -54,7 +60,15 @@ export default function WorkflowsPage() {
       }
       throw new Error("draft workflow id missing");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+      let message = "Unknown error";
+      if (error instanceof HttpError) {
+        const details = error.data && typeof error.data === "object"
+          ? (error.data.error || error.data.message)
+          : null;
+        message = details || error.message;
+      } else if (error instanceof Error) {
+        message = error.message;
+      }
       setCreateError(message);
     } finally {
       setCreating(false);

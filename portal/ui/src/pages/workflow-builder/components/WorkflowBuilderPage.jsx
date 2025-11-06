@@ -17,6 +17,8 @@ import StepEditor from "./StepEditor.jsx";
 import WorkflowCanvas from "./WorkflowCanvas.jsx";
 import { useWorkflowBuilderForm } from "../hooks/useWorkflowBuilderForm.js";
 import { buildPayload, formatApiError, getBuilderContext } from "../utils/workflowBuilder.js";
+import { HttpError } from "../../../api/client.js";
+import { updateWorkflow as updateWorkflowApi } from "../../../api/workflows.js";
 
 export default function WorkflowBuilderPage() {
   const { workflowId } = useMemo(() => getBuilderContext(window.location.pathname), []);
@@ -79,18 +81,7 @@ export default function WorkflowBuilderPage() {
     setSaveError("");
     try {
       const payload = buildPayload(nextForm);
-      const res = await fetch(`/api/workflows/${workflowId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorPayload = await res.json().catch(() => ({}));
-        const message = formatApiError(errorPayload);
-        setSaveError(message || "Failed to save workflow");
-        return false;
-      }
-      const response = await res.json().catch(() => null);
+      const response = await updateWorkflowApi(workflowId, payload);
       const workflowData = response?.data;
       if (workflowData) {
         syncFromWorkflow(workflowData, { preserveSelection: true, force: true });
@@ -107,8 +98,17 @@ export default function WorkflowBuilderPage() {
       setSaveError(fallbackError);
       return false;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to save workflow";
-      setSaveError(message);
+      if (error instanceof HttpError) {
+        const formatted = formatApiError(
+          error.data && typeof error.data === "object"
+            ? error.data
+            : { error: error.message }
+        );
+        setSaveError(formatted);
+      } else {
+        const message = error instanceof Error ? error.message : "Failed to save workflow";
+        setSaveError(message);
+      }
       return false;
     } finally {
       setSaving(false);
