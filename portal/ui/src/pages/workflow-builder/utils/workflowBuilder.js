@@ -65,7 +65,7 @@ export function getDefaultConfig(type) {
     case "press":
       return { xpath: "", key: "", delay: null };
     case "log":
-      return { target: "browgent", level: "info", message: "" };
+      return { target: "agent-flow", level: "info", message: "" };
     case "script":
       return { code: "", as: "" };
     case "extract_text":

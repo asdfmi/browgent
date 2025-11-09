@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://browgent.dev/schema/workflow.json",
+  "$id": "https://agent-flow.dev/schema/workflow.json",
   "type": "object",
   "required": ["nodes"],
   "additionalProperties": false,

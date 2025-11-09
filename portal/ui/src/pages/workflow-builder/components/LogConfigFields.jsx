@@ -9,7 +9,7 @@ export default function LogConfigFields({ config, onChange }) {
       <Typography variant="subtitle2">Log settings</Typography>
       <TextField
         label="Target"
-        value={config.target ?? "browgent"}
+        value={config.target ?? "agent-flow"}
         onChange={(event) => setConfig({ target: event.target.value })}
         fullWidth
       />

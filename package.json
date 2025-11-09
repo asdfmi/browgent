@@ -1,5 +1,5 @@
 {
-  "name": "browgent-root",
+  "name": "agent-flow-root",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,6 +13,9 @@
     "dev:portal:ui": "pnpm --dir portal run dev:ui",
     "dev:runner": "pnpm --dir runner run dev:runner",
     "dev": "concurrently \"pnpm run dev:portal:ui\" \"pnpm run dev:portal\" \"pnpm run dev:runner\""
+  },
+  "imports": {
+    "#domain/*": "./portal/domain/*"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

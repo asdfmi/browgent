@@ -4,7 +4,7 @@ export default async function handleLog({ runner, step }) {
   const message = renderTemplate(step?.message ?? '', runner.execution);
   const entry = {
     type: 'log',
-    target: step?.target || 'browgent',
+    target: step?.target || 'agent-flow',
     level: step?.level || 'info',
     message,
   };

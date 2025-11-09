@@ -128,6 +128,14 @@ export default class WorkflowExecution {
     return this.nodeExecutions.get(nodeId) ?? null;
   }
 
+  getNodeExecutions() {
+    return [...this.nodeExecutions.values()];
+  }
+
+  getMetrics() {
+    return [...this.metrics];
+  }
+
   #getOrCreateNodeExecution(nodeId) {
     let nodeExecution = this.nodeExecutions.get(nodeId);
     if (!nodeExecution) {

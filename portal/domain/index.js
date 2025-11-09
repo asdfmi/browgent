@@ -14,3 +14,4 @@ export { default as DataBinding } from './value-objects/data-binding.js';
 export { default as ExecutionResult } from './value-objects/execution-result.js';
 export { default as Metric } from './value-objects/metric.js';
 export * from './errors.js';
+export * from './repositories/index.js';

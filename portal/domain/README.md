@@ -1,6 +1,6 @@
 # Workflow Domain Layer
 
-This package translates the DDD specification in `docs/domain_design.rst` into executable aggregates, entities, and value objects that the rest of Browgent can reuse without depending on infrastructure concerns.
+This package translates the DDD specification in `docs/domain_design.rst` into executable aggregates, entities, and value objects that the rest of Agent Flow can reuse without depending on infrastructure concerns.
 
 ## Modules
 

@@ -8,7 +8,7 @@ export default function NavBar({ current } = {}) {
     <AppBar position="static" color="default" elevation={1} sx={{ mb: 2 }}>
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          browgent
+          agent-flow
         </Typography>
         <Stack direction="row" spacing={1}>
           {links.map((link) => (
