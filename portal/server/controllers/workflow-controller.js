@@ -122,7 +122,6 @@ function convertBuilderNodes(nodesInput = []) {
       inputs: Array.isArray(node?.inputs) ? node.inputs : [],
       outputs: Array.isArray(node?.outputs) ? node.outputs : [],
       config: node?.config ?? null,
-      successConfig: node?.successConfig ?? null,
     };
   });
 }
@@ -184,7 +183,6 @@ function toBuilderNode(node, index) {
         : key,
     type: node?.type || 'navigate',
     config: node?.config ?? {},
-    successConfig: node?.successConfig ?? null,
   };
 }
 

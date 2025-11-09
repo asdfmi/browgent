@@ -26,14 +26,15 @@ import {
   Condition,
   Edge,
   DataBinding,
+  NodeFactory,
 } from './index.js';
 
 const workflow = new Workflow({
   id: 'lead-capture',
   name: 'Lead Capture',
   nodes: [
-    new Node({ id: 'start', type: 'navigate', outputs: ['page'] }),
-    new Node({ id: 'fill-form', inputs: ['page'], outputs: ['result'] }),
+    NodeFactory.create({ id: 'start', type: 'navigate', outputs: ['page'] }),
+    NodeFactory.create({ id: 'fill-form', inputs: ['page'], outputs: ['result'] }),
   ],
   edges: [
     new Edge({

@@ -1,8 +1,8 @@
 import {
   Workflow,
-  Node,
   Edge,
   DataBinding,
+  NodeFactory,
 } from '#domain/index.js';
 
 export function toDomainWorkflow({
@@ -15,13 +15,16 @@ export function toDomainWorkflow({
   return new Workflow({
     id: workflowRecord.id,
     name: workflowRecord.name,
-    nodes: nodeRecords.map((node) => new Node({
-      id: node.id,
-      name: node.name,
-      type: node.type,
-      inputs: node.inputs ?? [],
-      outputs: node.outputs ?? [],
-    })),
+    nodes: nodeRecords.map((node) =>
+      NodeFactory.create({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+        inputs: node.inputs ?? [],
+        outputs: node.outputs ?? [],
+        config: node.config ?? null,
+      }),
+    ),
     edges: edgeRecords.map((edge) => new Edge({
       from: edge.fromNodeId,
       to: edge.toNodeId,

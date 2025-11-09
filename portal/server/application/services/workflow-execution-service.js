@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { NotFoundApplicationError } from '../errors.js';
-import { WorkflowExecution } from '../../../domain/index.js';
+import { WorkflowExecution } from '#domain/index.js';
 
 const coerceDate = (value) => {
   if (!value) return new Date();

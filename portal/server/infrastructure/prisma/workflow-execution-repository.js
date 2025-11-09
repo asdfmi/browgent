@@ -1,4 +1,4 @@
-import { WorkflowExecutionRepository as WorkflowExecutionRepositoryContract } from '../../../domain/index.js';
+import { WorkflowExecutionRepository as WorkflowExecutionRepositoryContract } from '#domain/index.js';
 import prisma from '../../prisma/client.js';
 import {
   toDomainWorkflowExecution,

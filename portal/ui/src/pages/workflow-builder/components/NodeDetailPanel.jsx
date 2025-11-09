@@ -9,193 +9,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { NODE_TYPES, SUCCESS_TYPES } from "../constants.js";
+import { NODE_TYPES } from "../constants.js";
 import {
-  createDefaultSuccessConfig,
   getDefaultConfig,
-  getSuccessType,
-  parseNumber,
-  cleanSuccessConfig,
   generateEdgeKey,
 } from "../utils/workflowBuilder.js";
 import NodeConfigFields from "./NodeConfigFields.jsx";
 import IfConfigFields from "./IfConfigFields.jsx";
-
-function SuccessConfigEditor({ value, onChange }) {
-  const type = getSuccessType(value);
-
-  const handleTypeChange = (event) => {
-    const nextType = event.target.value;
-    if (!nextType) {
-      onChange(null);
-      return;
-    }
-    onChange(createDefaultSuccessConfig(nextType));
-  };
-
-  const updateSuccess = (updater) => {
-    const baseType = type || "delay";
-    const current = value || createDefaultSuccessConfig(baseType);
-    const next = updater(current);
-    onChange(cleanSuccessConfig(next));
-  };
-
-  return (
-    <Stack spacing={1.5}>
-      <TextField
-        select
-        label="Success condition"
-        value={type}
-        onChange={handleTypeChange}
-        size="small"
-        helperText="Workflow node waits for this condition before continuing."
-      >
-        {SUCCESS_TYPES.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </TextField>
-      {type ? (
-        <Stack spacing={1.5}>
-          {type === "delay" ? (
-            <>
-              <TextField
-                label="Delay (seconds)"
-                type="number"
-                value={value?.condition?.delay ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    condition: {
-                      ...prev.condition,
-                      delay: parseNumber(event.target.value) ?? 1,
-                    },
-                  }))
-                }
-                size="small"
-              />
-              <TextField
-                label="Timeout (seconds)"
-                type="number"
-                value={value?.timeout ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    timeout: parseNumber(event.target.value) ?? 5,
-                  }))
-                }
-                size="small"
-              />
-            </>
-          ) : null}
-          {type === "visible" || type === "exists" ? (
-            <>
-              <TextField
-                label="XPath"
-                value={
-                  value?.condition?.visible?.xpath ??
-                  value?.condition?.exists?.xpath ??
-                  ""
-                }
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    condition: {
-                      ...(type === "visible"
-                        ? { visible: { xpath: event.target.value } }
-                        : { exists: { xpath: event.target.value } }),
-                    },
-                  }))
-                }
-                size="small"
-              />
-              <TextField
-                label="Timeout (seconds)"
-                type="number"
-                value={value?.timeout ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    timeout: parseNumber(event.target.value) ?? 5,
-                  }))
-                }
-                size="small"
-              />
-            </>
-          ) : null}
-          {type === "urlIncludes" ? (
-            <>
-              <TextField
-                label="URL must include"
-                value={value?.condition?.urlIncludes ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    condition: { urlIncludes: event.target.value },
-                  }))
-                }
-                size="small"
-              />
-              <TextField
-                label="Timeout (seconds)"
-                type="number"
-                value={value?.timeout ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    timeout: parseNumber(event.target.value) ?? 5,
-                  }))
-                }
-                size="small"
-              />
-            </>
-          ) : null}
-          {type === "script" ? (
-            <>
-              <TextField
-                label="Script"
-                value={value?.condition?.script?.code ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    condition: {
-                      script: { code: event.target.value },
-                    },
-                  }))
-                }
-                size="small"
-                multiline
-                minRows={4}
-              />
-              <TextField
-                label="Timeout (seconds)"
-                type="number"
-                value={value?.timeout ?? ""}
-                onChange={(event) =>
-                  updateSuccess((prev) => ({
-                    ...prev,
-                    timeout: parseNumber(event.target.value) ?? 5,
-                  }))
-                }
-                size="small"
-              />
-            </>
-          ) : null}
-        </Stack>
-      ) : null}
-    </Stack>
-  );
-}
-
-SuccessConfigEditor.propTypes = {
-  value: PropTypes.object,
-  onChange: PropTypes.func.isRequired,
-};
-
-SuccessConfigEditor.defaultProps = {
-  value: null,
-};
 
 export default function NodeDetailPanel({
   node,
@@ -233,7 +53,6 @@ export default function NodeDetailPanel({
     const updates = {
       type: nextType,
       config: getDefaultConfig(nextType),
-      successConfig: null,
     };
     onNodeChange(updates);
     onEdgesChange([]);
@@ -416,15 +235,6 @@ export default function NodeDetailPanel({
           />
         </Box>
 
-        <Box>
-          <Typography variant="subtitle2" gutterBottom>
-            Success condition
-          </Typography>
-          <SuccessConfigEditor
-            value={node.successConfig}
-            onChange={(next) => onNodeChange({ successConfig: next })}
-          />
-        </Box>
       </Stack>
 
       <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center">
@@ -452,7 +262,6 @@ NodeDetailPanel.propTypes = {
     description: PropTypes.string,
     type: PropTypes.string.isRequired,
     config: PropTypes.object,
-    successConfig: PropTypes.object,
   }),
   edges: PropTypes.arrayOf(PropTypes.object),
   allEdges: PropTypes.arrayOf(PropTypes.object),

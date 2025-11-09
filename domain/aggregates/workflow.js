@@ -1,4 +1,4 @@
-import Node from '../entities/node.js';
+import NodeFactory from '../factories/node-factory.js';
 import Edge from '../value-objects/edge.js';
 import DataBinding from '../value-objects/data-binding.js';
 import { assertInvariant, requireNonEmptyString } from '../utils/validation.js';
@@ -31,7 +31,7 @@ export default class Workflow {
     if (!Array.isArray(nodes)) {
       throw new InvariantViolationError('Workflow.nodes must be an array');
     }
-    this.nodes = nodes.map((node) => Node.from(node));
+    this.nodes = nodes.map((node) => NodeFactory.create(node));
     assertInvariant(this.nodes.length > 0, 'Workflow must declare at least one node');
     this.nodesById = new Map(this.nodes.map((node) => [node.id, node]));
     assertInvariant(

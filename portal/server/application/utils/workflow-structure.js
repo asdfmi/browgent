@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import {
   Workflow,
-  Node,
   Edge,
   DataBinding,
   ValidationError,
-} from '../../../domain/index.js';
+  NodeFactory,
+} from '#domain/index.js';
 
 const toArray = (value) => (Array.isArray(value) ? value : (value ? [value] : []));
 
@@ -167,13 +167,14 @@ export function normalizeWorkflowStructure({
   const workflow = new Workflow({
     id: workflowId,
     name: name.trim(),
-    nodes: normalizedNodes.map(
-      (node) => new Node({
+    nodes: normalizedNodes.map((node) =>
+      NodeFactory.create({
         id: node.id,
         name: node.name,
         type: node.type,
         inputs: node.inputs,
         outputs: node.outputs,
+        config: node.config,
       }),
     ),
     edges: normalizedEdges.map(

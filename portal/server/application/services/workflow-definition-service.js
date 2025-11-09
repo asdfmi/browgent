@@ -4,7 +4,7 @@ import {
   normalizeWorkflowStructure,
   serializeWorkflow,
 } from '../utils/workflow-structure.js';
-import { stableStringify } from '../../../domain/utils/object-utils.js';
+import { stableStringify } from '#domain/utils/object-utils.js';
 
 const identity = (item) => item.id;
 

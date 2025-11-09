@@ -4,6 +4,7 @@ export {
   WORKFLOW_EXECUTION_STATUS,
 } from './aggregates/workflow-execution.js';
 export { default as Node } from './entities/node.js';
+export { default as NodeFactory } from './factories/node-factory.js';
 export {
   default as NodeExecution,
   NODE_EXECUTION_STATUS,

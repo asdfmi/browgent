@@ -21,7 +21,6 @@ export function createEmptyNode(existingNodes) {
     label: "",
     type: "navigate",
     config: getDefaultConfig("navigate"),
-    successConfig: null,
   };
 }
 
@@ -33,9 +32,6 @@ export function toEditableNode(node) {
     config: node.config && typeof node.config === "object"
       ? node.config
       : getDefaultConfig(node.type ?? "navigate"),
-    successConfig: node.successConfig && typeof node.successConfig === "object"
-      ? node.successConfig
-      : null,
   };
 }
 
@@ -111,41 +107,6 @@ export function getBranchConditionType(condition) {
   return BRANCH_CONDITION_TYPES[0].value;
 }
 
-export function getSuccessType(success) {
-  if (!success || typeof success !== "object") return "";
-  const condition = success.condition;
-  if (!condition || typeof condition !== "object") return "";
-  if (typeof condition.delay === "number") return "delay";
-  if (condition.visible) return "visible";
-  if (condition.exists) return "exists";
-  if (typeof condition.urlIncludes === "string") return "urlIncludes";
-  if (condition.script) return "script";
-  return "";
-}
-
-export function createDefaultSuccessConfig(type) {
-  switch (type) {
-    case "delay":
-      return { timeout: 5, condition: { delay: 1 } };
-    case "visible":
-      return { timeout: 5, condition: { visible: { xpath: "" } } };
-    case "exists":
-      return { timeout: 5, condition: { exists: { xpath: "" } } };
-    case "urlIncludes":
-      return { timeout: 5, condition: { urlIncludes: "" } };
-    case "script":
-      return { timeout: 5, condition: { script: { code: "" } } };
-    default:
-      return null;
-  }
-}
-
-export function cleanSuccessConfig(value) {
-  if (!value || typeof value !== "object") return null;
-  const cleaned = deepClean(value);
-  return cleaned ?? null;
-}
-
 export function parseNumber(input) {
   if (input === "" || input === null || typeof input === "undefined") return null;
   const num = Number(input);
@@ -186,14 +147,11 @@ export function buildPayload(form) {
     const configErrors = validateConfig(type, config, label);
     errors.push(...configErrors);
 
-    const successConfig = cleanSuccessConfig(node.successConfig);
-
     nodes.push({
       nodeKey,
       type,
       label: String(node.label || "").trim() || null,
       ...(config ? { config } : {}),
-      ...(successConfig ? { successConfig } : {}),
     });
   });
 

@@ -15,7 +15,7 @@
     "dev": "concurrently \"pnpm run dev:portal:ui\" \"pnpm run dev:portal\" \"pnpm run dev:runner\""
   },
   "imports": {
-    "#domain/*": "./portal/domain/*"
+    "#domain/*": "./domain/*"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
