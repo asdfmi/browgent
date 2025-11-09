@@ -5,14 +5,14 @@
   "type": "module",
   "workspaces": [
     "portal",
-    "crawler"
+    "runner"
   ],
   "scripts": {
     "lint": "eslint .",
     "dev:portal": "pnpm --dir portal run dev:api",
     "dev:portal:ui": "pnpm --dir portal run dev:ui",
-    "dev:crawler": "pnpm --dir crawler run dev:runner",
-    "dev": "concurrently \"pnpm run dev:portal:ui\" \"pnpm run dev:portal\" \"pnpm run dev:crawler\""
+    "dev:runner": "pnpm --dir runner run dev:runner",
+    "dev": "concurrently \"pnpm run dev:portal:ui\" \"pnpm run dev:portal\" \"pnpm run dev:runner\""
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

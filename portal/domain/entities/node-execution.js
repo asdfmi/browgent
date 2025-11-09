@@ -1,0 +1,70 @@
+import { requireNonEmptyString } from '../utils/validation.js';
+
+export const NODE_EXECUTION_STATUS = Object.freeze({
+  NOT_STARTED: 'NotStarted',
+  RUNNING: 'Running',
+  SUCCEEDED: 'Succeeded',
+  FAILED: 'Failed',
+  CANCELLED: 'Cancelled',
+});
+
+const VALID_STATUSES = new Set(Object.values(NODE_EXECUTION_STATUS));
+
+export default class NodeExecution {
+  constructor({
+    nodeId,
+    status = NODE_EXECUTION_STATUS.NOT_STARTED,
+    startedAt = null,
+    completedAt = null,
+    outputs = null,
+    error = null,
+  }) {
+    this.nodeId = requireNonEmptyString(nodeId, 'NodeExecution.nodeId');
+    if (!VALID_STATUSES.has(status)) {
+      throw new Error(`Invalid NodeExecution status: ${status}`);
+    }
+    this.status = status;
+    this.startedAt = startedAt ? new Date(startedAt) : null;
+    this.completedAt = completedAt ? new Date(completedAt) : null;
+    this.outputs = outputs;
+    this.error = error ? String(error) : null;
+  }
+
+  start(timestamp = new Date()) {
+    if (this.status !== NODE_EXECUTION_STATUS.NOT_STARTED) {
+      throw new Error('NodeExecution can only start from NotStarted');
+    }
+    this.status = NODE_EXECUTION_STATUS.RUNNING;
+    this.startedAt = new Date(timestamp);
+  }
+
+  succeed({ outputs = null, timestamp = new Date() } = {}) {
+    if (this.status !== NODE_EXECUTION_STATUS.RUNNING) {
+      throw new Error('NodeExecution can only succeed from Running');
+    }
+    this.status = NODE_EXECUTION_STATUS.SUCCEEDED;
+    this.completedAt = new Date(timestamp);
+    this.outputs = outputs;
+    this.error = null;
+  }
+
+  fail({ error, timestamp = new Date() } = {}) {
+    if (this.status !== NODE_EXECUTION_STATUS.RUNNING) {
+      throw new Error('NodeExecution can only fail from Running');
+    }
+    this.status = NODE_EXECUTION_STATUS.FAILED;
+    this.completedAt = new Date(timestamp);
+    this.error = error ? String(error) : 'unknown_error';
+  }
+
+  cancel({ timestamp = new Date() } = {}) {
+    if (
+      this.status === NODE_EXECUTION_STATUS.SUCCEEDED ||
+      this.status === NODE_EXECUTION_STATUS.FAILED
+    ) {
+      throw new Error('NodeExecution cannot be cancelled after completion');
+    }
+    this.status = NODE_EXECUTION_STATUS.CANCELLED;
+    this.completedAt = new Date(timestamp);
+  }
+}

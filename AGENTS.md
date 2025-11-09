@@ -1,0 +1,1 @@
+IMPORTANT: Do not write overly defensive code; always keep a clear, system-level awareness of responsibility boundaries, understand the whole, and code simply with clarity about where failure should occur.

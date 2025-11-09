@@ -1,0 +1,34 @@
+# Workflowアプリ UseCase ラフ列挙
+
+DDDモデルを一旦FIXとみなし、以下のようにDefinition BC / Execution BCそれぞれの代表的なユースケースを粗く洗い出す。
+
+## Workflow Definition BC（構造）
+
+1. Workflow定義を新規作成する  
+   - Node/Edge/Condition/DataBindingを入力し、最低限の構造を保存。
+2. Workflow定義を複製・派生させる  
+   - 既存定義を基にバリエーションを作る（公開ID or スナップショット）。
+3. Workflow定義を編集し不変条件を検証する  
+   - DAG性、入出力解決、重複Edgeなどのチェックを実行。
+4. Workflow定義のバージョンを確定し公開する  
+   - Execution BCから参照可能な公開ID/バージョンを発行。
+5. Workflow定義の差分を比較しレビューする  
+   - Node/Edgeの追加・削除などを可視化して承認プロセスを通す。
+
+## Workflow Execution / Observation BC（実行・観測）
+
+6. 公開WorkflowからWorkflowExecutionを起動する  
+   - Definitionの特定バージョンを固定し、ExecutionIdを採番。
+7. NodeExecutionを順次起動し依存制御する  
+   - 依存Nodeの成功やCondition成立を確認しつつ実行キューを進める。
+8. 実行中のWorkflowExecutionをモニタリングする  
+   - 状態（NotStarted/Running/…）と各NodeExecutionの進捗を配信。
+9. 失敗したWorkflowExecutionをリトライまたはキャンセルする  
+   - どのNodeまで進んでいるかを参照し、部分/全体リトライを指示。
+10. 実行結果とMetricを収集・集計する  
+    - Node/Executionの単位で指標を記録し、型/単位整合を確認した上で外部にエクスポート。
+
+## クロスカット
+
+11. ExecutionからDefinitionへのフィードバックを作成する  
+    - 実行ログやMetricをもとに定義改善点をメモ化し、次のDefinition改修に入力する。

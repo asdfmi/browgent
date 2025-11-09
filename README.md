@@ -16,7 +16,7 @@ For deeper architecture, data model, API, and deployment details—including ste
    ```
 3. Install Playwright Chromium (one-time):
    ```bash
-   pnpm --dir crawler exec playwright install --with-deps chromium
+   pnpm --dir runner exec playwright install --with-deps chromium
    ```
 4. Run
    ```bash

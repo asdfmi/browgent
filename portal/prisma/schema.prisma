@@ -8,99 +8,108 @@ datasource db {
 }
 
 model Workflow {
-  id          Int           @id @default(autoincrement())
-  slug        String        @unique
-  title       String
+  id          String   @id @default(uuid())
+  name        String
   description String?
-  startNodeId String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  nodes       WorkflowNode[]
-  edges       WorkflowEdge[]
-  runs        WorkflowRun[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nodes        WorkflowNode[]
+  edges        WorkflowEdge[]
+  dataBindings WorkflowDataBinding[]
+  executions   WorkflowExecution[]
 }
 
 model WorkflowNode {
-  id            Int           @id @default(autoincrement())
-  workflow      Workflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  workflowId    Int
-  nodeKey       String
-  type          WorkflowNodeType
-  label         String?
-  config        Json?
-  successConfig Json?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id         String   @id @default(uuid())
+  workflowId String
+  name       String
+  type       String
+  config     Json?
+  inputs     Json?
+  outputs    Json?
+  createdAt  DateTime @default(now())
 
-  @@index([workflowId])
-  @@unique([workflowId, nodeKey])
+  workflow Workflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outEdges WorkflowEdge[]  @relation("edge_from")
+  inEdges  WorkflowEdge[]  @relation("edge_to")
+  bindingsSource WorkflowDataBinding[] @relation("binding_source")
+  bindingsTarget WorkflowDataBinding[] @relation("binding_target")
 }
 
 model WorkflowEdge {
-  id         Int          @id @default(autoincrement())
-  workflow   Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  workflowId Int
-  edgeKey    String
-  sourceKey  String
-  targetKey  String?
-  label      String?
-  condition  Json?
-  metadata   Json?
-  /// Lower numbers are evaluated first when selecting the next node.
-  priority   Int?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id          String   @id @default(uuid())
+  workflowId  String
+  fromNodeId  String
+  toNodeId    String
+  condition   Json?
+  priority    Int?
+  createdAt   DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromNode WorkflowNode @relation("edge_from", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   WorkflowNode @relation("edge_to", fields: [toNodeId], references: [id], onDelete: Cascade)
 
   @@index([workflowId])
-  @@index([workflowId, sourceKey])
-  @@unique([workflowId, edgeKey])
 }
 
-enum WorkflowNodeType {
-  navigate
-  wait
-  scroll
-  click
-  fill
-  press
-  log
-  script
-  extract_text
-}
+model WorkflowDataBinding {
+  id            String   @id @default(uuid())
+  workflowId    String
+  sourceNodeId  String
+  sourceOutput  String?
+  targetNodeId  String
+  targetInput   String
+  transform     Json?
+  createdAt     DateTime @default(now())
 
-model WorkflowRun {
-  id           Int               @id @default(autoincrement())
-  workflow     Workflow          @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  workflowId   Int
-  runKey       String            @unique
-  status       WorkflowRunStatus @default(queued)
-  startedAt    DateTime          @default(now())
-  finishedAt   DateTime?
-  errorMessage String?
-  stats        Json?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  metrics      WorkflowRunMetric[]
+  workflow    Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sourceNode  WorkflowNode @relation("binding_source", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode  WorkflowNode @relation("binding_target", fields: [targetNodeId], references: [id], onDelete: Cascade)
 
   @@index([workflowId])
-  @@index([status, startedAt])
 }
 
-model WorkflowRunMetric {
-  id        Int          @id @default(autoincrement())
-  run       WorkflowRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  runId     Int
-  key       String
-  value     Json?
-  createdAt DateTime     @default(now())
+model WorkflowExecution {
+  id             String       @id @default(uuid())
+  workflowId     String
+  status         String
+  result         Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  @@index([runId, key])
+  workflow   Workflow        @relation(fields: [workflowId], references: [id])
+  nodes      NodeExecution[]
+  metrics    ExecutionMetric[]
 }
 
-enum WorkflowRunStatus {
-  queued
-  running
-  succeeded
-  failed
-  cancelled
+model NodeExecution {
+  id                  String   @id @default(uuid())
+  workflowExecutionId String
+  nodeId              String
+  status              String
+  outputs             Json?
+  error               String?
+  startedAt           DateTime?
+  completedAt         DateTime?
+
+  workflowExecution WorkflowExecution @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowExecutionId, nodeId])
+}
+
+model ExecutionMetric {
+  id                  String   @id @default(uuid())
+  workflowExecutionId String
+  key                 String
+  type                String
+  unit                String?
+  value               Json
+  timestamp           DateTime @default(now())
+
+  workflowExecution WorkflowExecution @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowExecutionId, key, timestamp])
 }
