@@ -1,4 +1,4 @@
-import { normalizeWorkflowStructure } from '#domain/utils/workflow-structure.js';
+import { normalizeWorkflowStructure } from '../utils/workflow-structure.js';
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 

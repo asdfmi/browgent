@@ -11,5 +11,8 @@
   "scripts": {
     "dev:runner": "tsx watch index.js"
   },
+  "imports": {
+    "#domain/*": "../domain/*"
+  },
   "packageManager": "pnpm@10.20.0"
 }

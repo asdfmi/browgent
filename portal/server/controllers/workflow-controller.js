@@ -2,8 +2,8 @@ import { ValidationError } from '#domain/errors.js';
 import { randomUUID } from 'node:crypto';
 
 export default class WorkflowController {
-  constructor({ workflowDefinitionService, workflowExecutionService }) {
-    this.workflowDefinitionService = workflowDefinitionService;
+  constructor({ workflowFactory, workflowExecutionService }) {
+    this.workflowFactory = workflowFactory;
     this.workflowExecutionService = workflowExecutionService;
 
     this.listWorkflows = this.listWorkflows.bind(this);
@@ -15,7 +15,7 @@ export default class WorkflowController {
   }
 
   async listWorkflows(_req, res) {
-    const rows = await this.workflowDefinitionService.listWorkflows();
+    const rows = await this.workflowFactory.listWorkflows();
     res.json({ data: rows.map(formatWorkflowSummary) });
   }
 
@@ -36,7 +36,7 @@ export default class WorkflowController {
       edges: [],
     };
     const definitionInput = buildDefinitionPayload(workflowId, basePayload);
-    const created = await this.workflowDefinitionService.createWorkflowDefinition(definitionInput);
+    const created = await this.workflowFactory.createWorkflowDefinition(definitionInput);
     res.status(201).json({ data: formatWorkflowDetail(created) });
   }
 
@@ -46,7 +46,7 @@ export default class WorkflowController {
       res.status(400).json({ error: 'invalid_workflow', message: 'workflow id is required' });
       return;
     }
-    const workflow = await this.workflowDefinitionService.getWorkflow(workflowId);
+    const workflow = await this.workflowFactory.getWorkflow(workflowId);
     res.json({ data: formatWorkflowDetail(workflow) });
   }
 
@@ -57,7 +57,7 @@ export default class WorkflowController {
       return;
     }
     const definitionInput = buildDefinitionPayload(workflowId, req.body || {});
-    const updated = await this.workflowDefinitionService.updateWorkflowDefinition(workflowId, {
+    const updated = await this.workflowFactory.updateWorkflowDefinition(workflowId, {
       name: definitionInput.name,
       description: definitionInput.description,
       nodes: definitionInput.nodes,

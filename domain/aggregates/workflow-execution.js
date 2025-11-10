@@ -24,6 +24,7 @@ export default class WorkflowExecution {
     result = null,
     startedAt = null,
     completedAt = null,
+    expectedNodeIds = [],
   }) {
     this.id = requireNonEmptyString(id, 'WorkflowExecution.id');
     this.workflowId = requireNonEmptyString(workflowId, 'WorkflowExecution.workflowId');
@@ -31,10 +32,12 @@ export default class WorkflowExecution {
     this.startedAt = startedAt ? new Date(startedAt) : null;
     this.completedAt = completedAt ? new Date(completedAt) : null;
     this.result = result ? ExecutionResult.from(result) : null;
+    this.expectedNodeIds = WorkflowExecution.#normalizeExpectedNodeIds(expectedNodeIds);
 
     const executions = WorkflowExecution.#ensureArray(nodeExecutions, 'WorkflowExecution.nodeExecutions')
       .map((execution) => NodeExecution.from(execution));
     this.nodeExecutions = new Map(executions.map((execution) => [execution.nodeId, execution]));
+    this.#ensureExpectedCoverage();
 
     this.metricDefinitions = new Map();
     this.metrics = [];
@@ -49,10 +52,35 @@ export default class WorkflowExecution {
   }
 
   static #ensureArray(value, label) {
-    if (!Array.isArray(value)) {
-      throw new InvariantViolationError(`${label} must be an array`);
+    if (Array.isArray(value)) {
+      return value;
     }
-    return value;
+    if (value instanceof Set) {
+      return [...value];
+    }
+    throw new InvariantViolationError(`${label} must be an array`);
+  }
+
+  static #normalizeExpectedNodeIds(nodeIds) {
+    if (!nodeIds || nodeIds === undefined) return new Set();
+    const array = WorkflowExecution.#ensureArray(nodeIds, 'WorkflowExecution.expectedNodeIds');
+    const normalized = new Set();
+    for (const nodeId of array) {
+      const normalizedId = requireNonEmptyString(nodeId, 'WorkflowExecution.expectedNodeId');
+      normalized.add(normalizedId);
+    }
+    return normalized;
+  }
+
+  #ensureExpectedCoverage() {
+    if (this.expectedNodeIds.size === 0) {
+      return;
+    }
+    for (const nodeId of this.expectedNodeIds) {
+      if (!this.nodeExecutions.has(nodeId)) {
+        this.nodeExecutions.set(nodeId, new NodeExecution({ nodeId }));
+      }
+    }
   }
 
   start(timestamp = new Date()) {
@@ -100,7 +128,8 @@ export default class WorkflowExecution {
   markCancelled(timestamp = new Date()) {
     if (
       this.status === WORKFLOW_EXECUTION_STATUS.SUCCEEDED ||
-      this.status === WORKFLOW_EXECUTION_STATUS.CANCELLED
+      this.status === WORKFLOW_EXECUTION_STATUS.CANCELLED ||
+      this.status === WORKFLOW_EXECUTION_STATUS.FAILED
     ) {
       return;
     }
@@ -137,6 +166,7 @@ export default class WorkflowExecution {
   }
 
   #getOrCreateNodeExecution(nodeId) {
+    this.#assertKnownNode(nodeId);
     let nodeExecution = this.nodeExecutions.get(nodeId);
     if (!nodeExecution) {
       nodeExecution = new NodeExecution({ nodeId });
@@ -152,9 +182,16 @@ export default class WorkflowExecution {
   }
 
   #autoComplete(timestamp) {
-    const allDone = [...this.nodeExecutions.values()].every(
-      (execution) => execution.status === NODE_EXECUTION_STATUS.SUCCEEDED,
-    );
+    const nodeIds = this.expectedNodeIds.size > 0
+      ? [...this.expectedNodeIds]
+      : [...this.nodeExecutions.keys()];
+    if (nodeIds.length === 0) {
+      return;
+    }
+    const allDone = nodeIds.every((nodeId) => {
+      const execution = this.nodeExecutions.get(nodeId);
+      return execution && execution.status === NODE_EXECUTION_STATUS.SUCCEEDED;
+    });
     if (allDone) {
       this.status = WORKFLOW_EXECUTION_STATUS.SUCCEEDED;
       this.completedAt = new Date(timestamp);
@@ -170,5 +207,12 @@ export default class WorkflowExecution {
       error: error ?? 'workflow_failed',
       finishedAt: this.completedAt,
     });
+  }
+
+  #assertKnownNode(nodeId) {
+    if (this.expectedNodeIds.size === 0) return;
+    if (!this.expectedNodeIds.has(nodeId)) {
+      throw new ValidationError(`Node "${nodeId}" is not part of workflow execution ${this.id}`);
+    }
   }
 }

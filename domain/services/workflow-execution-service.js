@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { NotFoundApplicationError } from '../errors.js';
-import { WorkflowExecution } from '#domain/index.js';
+import { NotFoundError } from '../errors.js';
+import WorkflowExecution from '../aggregates/workflow-execution.js';
 
 const coerceDate = (value) => {
   if (!value) return new Date();
@@ -54,7 +54,7 @@ export default class WorkflowExecutionService {
   async retryExecution(executionId) {
     const existing = await this.executionRepo.findById(executionId);
     if (!existing) {
-      throw new NotFoundApplicationError(`Execution ${executionId} not found`);
+      throw new NotFoundError(`Execution ${executionId} not found`);
     }
     return this.startExecution(existing.execution.workflowId, {});
   }
@@ -68,7 +68,7 @@ export default class WorkflowExecutionService {
   async getExecution(executionId) {
     const snapshot = await this.executionRepo.findById(executionId);
     if (!snapshot) {
-      throw new NotFoundApplicationError(`Execution ${executionId} not found`);
+      throw new NotFoundError(`Execution ${executionId} not found`);
     }
     return this.#toExecutionView(snapshot);
   }
@@ -80,14 +80,14 @@ export default class WorkflowExecutionService {
   async #mutateExecution(executionId, mutator) {
     const snapshot = await this.executionRepo.findById(executionId);
     if (!snapshot) {
-      throw new NotFoundApplicationError(`Execution ${executionId} not found`);
+      throw new NotFoundError(`Execution ${executionId} not found`);
     }
     const execution = snapshot.execution;
     await mutator(execution, snapshot);
     await this.executionRepo.update(execution);
     const refreshed = await this.executionRepo.findById(executionId);
     if (!refreshed) {
-      throw new NotFoundApplicationError(`Execution ${executionId} not found after update`);
+      throw new NotFoundError(`Execution ${executionId} not found after update`);
     }
     return this.#toExecutionView(refreshed);
   }

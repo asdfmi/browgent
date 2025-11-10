@@ -1,13 +1,16 @@
-import { WorkflowCursor } from '#domain/index.js';
+import WorkflowCursor from './workflow-cursor.js';
+import NodeRunner from './node-runner.js';
 import ExecutionContext from './execution-context.js';
 import { buildExecutionView } from './execution-view.js';
+
+const DEFAULT_LOGGER = globalThis.console ?? {};
 
 export default class WorkflowExecutor {
   constructor({
     workflow,
     execution,
     runId,
-    logger = console,
+    logger = DEFAULT_LOGGER,
     startNodeId = null,
     browserSessionFactory,
     eventDispatcherFactory,
@@ -28,11 +31,12 @@ export default class WorkflowExecutor {
     this.execution = new ExecutionContext();
     this.browserSessionFactory = browserSessionFactory;
     this.eventDispatcherFactory = eventDispatcherFactory;
-    this.stepHandlers = stepHandlers;
+    this.nodeRunner = new NodeRunner({ handlers: stepHandlers, logger });
     this.eventPublisher = eventPublisher;
     this.browserSession = null;
     this.events = null;
     this.cursor = null;
+    this.expressionCache = new Map();
   }
 
   async run() {
@@ -40,7 +44,11 @@ export default class WorkflowExecutor {
     this.events = this.eventDispatcherFactory({ runId: this.runId, logger: this.logger, publish: this.eventPublisher }) ?? null;
     this.events?.attachBrowserSession(this.browserSession);
     this.events?.startScreenshotStream();
-    this.cursor = new WorkflowCursor({ workflow: this.workflow, preferredStartNodeId: this.startNodeId });
+    this.cursor = new WorkflowCursor({
+      workflow: this.workflow,
+      preferredStartNodeId: this.startNodeId,
+      edgeEvaluator: (payload) => this.#evaluateEdge(payload),
+    });
 
     await this.#emitRunStatus('running');
     try {
@@ -61,8 +69,12 @@ export default class WorkflowExecutor {
   async #runSteps() {
     let step = this.cursor.getCurrentStep();
     while (step) {
-      const nextStepId = await this.#executeStep(step, { stepId: step.id });
-      step = this.cursor.advance({ requestedNextId: nextStepId });
+      const outcome = await this.#executeStep(step, { stepId: step.id });
+      const advanceContext = this.#buildAdvanceContext(step, outcome);
+      step = await this.cursor.advance({
+        requestedNextId: outcome?.requestedNextId,
+        context: advanceContext,
+      });
     }
   }
 
@@ -82,26 +94,28 @@ export default class WorkflowExecutor {
     }
     this.workflowExecution.startNode(step.id);
     try {
-      const handler = this.stepHandlers[step.type];
-      if (!handler) {
-        throw new Error(`unsupported step type: ${step.type}`);
-      }
-      const result = await handler({
-        automation: this.browserSession,
-        execution: this.execution,
+      const runResult = await this.nodeRunner.execute({
         step,
-        meta: enrichedMeta,
-        index,
-        runId: this.runId,
-        publishEvent: this.eventPublisher,
-        logger: this.logger,
+        runtime: {
+          automation: this.browserSession,
+          execution: this.execution,
+          meta: enrichedMeta,
+          index,
+          runId: this.runId,
+          publishEvent: this.eventPublisher,
+          logger: this.logger,
+        },
       });
-      const { requestedNextId, outputs } = this.#interpretHandlerResult(result);
-      this.workflowExecution.completeNode(step.id, { outputs: outputs ?? null });
+      this.workflowExecution.completeNode(step.id, { outputs: runResult.outputs ?? null });
       if (this.events?.stepEnd) {
         await this.events.stepEnd({ index, ok: true, meta: enrichedMeta });
       }
-      return requestedNextId;
+      return {
+        requestedNextId: runResult.requestedNextId,
+        outputs: runResult.outputs,
+        handlerResult: runResult.rawResult,
+        meta: enrichedMeta,
+      };
     } catch (error) {
       const message = String(error?.message || error);
       try {
@@ -116,6 +130,18 @@ export default class WorkflowExecutor {
     }
   }
 
+  #buildAdvanceContext(step, outcome) {
+    return {
+      step,
+      outputs: outcome?.outputs ?? null,
+      handlerResult: outcome?.handlerResult ?? null,
+      meta: outcome?.meta ?? null,
+      executionContext: this.execution,
+      workflowExecution: this.workflowExecution,
+      automation: this.browserSession,
+    };
+  }
+
   #executionSnapshot() {
     return buildExecutionView(this.workflowExecution);
   }
@@ -124,18 +150,53 @@ export default class WorkflowExecutor {
     await this.events?.runStatus(status, { execution: this.#executionSnapshot(), ...extra });
   }
 
-  #interpretHandlerResult(result) {
-    if (!result) {
-      return { requestedNextId: undefined, outputs: null };
+  async #evaluateEdge({ edge, context }) {
+    if (!edge.condition) {
+      return true;
     }
-    if (typeof result === 'object') {
-      const requestedNextId = typeof result.nextStepId === 'string' ? result.nextStepId : undefined;
-      const outputs = 'outputs' in result ? result.outputs : null;
-      return { requestedNextId, outputs };
+    try {
+      switch (edge.condition.type) {
+        case 'expression':
+          return this.#evaluateExpressionCondition(edge.condition, context);
+        default:
+          this.logger.warn?.(`Unsupported edge condition type: ${edge.condition.type}`);
+          return false;
+      }
+    } catch (error) {
+      this.logger.warn?.('Failed to evaluate edge condition', { edgeId: edge.id, error });
+      return false;
     }
-    if (typeof result === 'string') {
-      return { requestedNextId: result, outputs: null };
+  }
+
+  #evaluateExpressionCondition(condition, context) {
+    const expression = condition.expression;
+    if (typeof expression !== 'string' || !expression.trim()) {
+      return false;
     }
-    return { requestedNextId: undefined, outputs: result };
+    const evaluator = this.#getCompiledExpression(expression);
+    const state = {
+      outputs: context?.outputs ?? null,
+      handlerResult: context?.handlerResult ?? null,
+      meta: context?.meta ?? null,
+      variables: context?.executionContext?.getVariablesSnapshot?.() ?? {},
+      execution: context?.workflowExecution ?? null,
+      step: context?.step ?? null,
+      runId: this.runId,
+      workflowId: this.workflow?.id ?? null,
+      parameters: condition.parameters ?? {},
+    };
+    return Boolean(evaluator(state));
+  }
+
+  #getCompiledExpression(expression) {
+    if (this.expressionCache.has(expression)) {
+      return this.expressionCache.get(expression);
+    }
+    const fn = new Function('state', `
+      "use strict";
+      return (${expression});
+    `);
+    this.expressionCache.set(expression, fn);
+    return fn;
   }
 }

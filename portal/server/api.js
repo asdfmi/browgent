@@ -5,20 +5,20 @@ import createInternalRunRoutes from './routes/internal-run-routes.js';
 export function registerApi(
   app,
   {
-    workflowDefinitionService,
+    workflowFactory,
     workflowExecutionService,
     runEventHub,
     internalSecret = '',
   } = {},
 ) {
-  if (!workflowDefinitionService || !workflowExecutionService) {
+  if (!workflowFactory || !workflowExecutionService) {
     throw new Error('workflow services are required to register API routes');
   }
   app.use(express.json({ limit: '1mb' }));
   app.use(
     '/api',
     createWorkflowRouter({
-      workflowDefinitionService,
+      workflowFactory,
       workflowExecutionService,
     }),
   );

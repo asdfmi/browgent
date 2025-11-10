@@ -2,9 +2,10 @@ import WorkflowPlan from './workflow-plan.js';
 import { InvariantViolationError } from '../errors.js';
 
 export default class WorkflowCursor {
-  constructor({ workflow, preferredStartNodeId = null } = {}) {
+  constructor({ workflow, preferredStartNodeId = null, edgeEvaluator = null } = {}) {
     this.plan = new WorkflowPlan({ workflow, preferredStartNodeId });
     this.currentStepId = this.plan.getStartNodeId();
+    this.edgeEvaluator = edgeEvaluator ?? WorkflowCursor.#defaultEdgeEvaluator;
   }
 
   getCurrentStep() {
@@ -15,13 +16,13 @@ export default class WorkflowCursor {
     return !this.currentStepId;
   }
 
-  advance({ requestedNextId } = {}) {
-    const nextId = this.#determineNextId(requestedNextId);
+  async advance({ requestedNextId, context } = {}) {
+    const nextId = await this.#determineNextId(requestedNextId, context);
     this.currentStepId = nextId;
     return this.getCurrentStep();
   }
 
-  #determineNextId(requestedNextId) {
+  async #determineNextId(requestedNextId, context) {
     let candidate = this.#normalizeId(requestedNextId);
     if (candidate) {
       if (!this.plan.hasStep(candidate)) {
@@ -29,7 +30,7 @@ export default class WorkflowCursor {
       }
       return candidate;
     }
-    candidate = this.plan.getFirstEdgeTarget(this.currentStepId);
+    candidate = await this.#pickEdgeTarget(this.currentStepId, context);
     if (candidate) {
       return candidate;
     }
@@ -40,5 +41,32 @@ export default class WorkflowCursor {
     if (typeof value !== 'string') return '';
     const trimmed = value.trim();
     return trimmed || '';
+  }
+
+  async #pickEdgeTarget(stepId, context) {
+    if (!stepId) return null;
+    const edges = this.plan.getEdges(stepId);
+    if (edges.length === 0) {
+      return null;
+    }
+    for (const edge of edges) {
+      const allowed = await this.edgeEvaluator({
+        edge,
+        fromStepId: stepId,
+        plan: this.plan,
+        context,
+      });
+      if (allowed) {
+        if (!edge.to) {
+          throw new InvariantViolationError(`Edge ${edge.id} is missing target`);
+        }
+        return edge.to;
+      }
+    }
+    return null;
+  }
+
+  static async #defaultEdgeEvaluator({ edge }) {
+    return edge.condition === null;
   }
 }

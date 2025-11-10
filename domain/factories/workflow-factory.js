@@ -1,53 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { NotFoundApplicationError } from '../errors.js';
+import { NotFoundError } from '../errors.js';
 import {
   normalizeWorkflowStructure,
   serializeWorkflow,
-} from '#domain/utils/workflow-structure.js';
-import { stableStringify } from '#domain/utils/object-utils.js';
+} from '../utils/workflow-structure.js';
 
-const identity = (item) => item.id;
-
-function diffCollections(left, right, transform = (item) => item) {
-  const leftMap = new Map(left.map((item) => [identity(item), item]));
-  const rightMap = new Map(right.map((item) => [identity(item), item]));
-
-  const added = [];
-  const removed = [];
-  const changed = [];
-
-  for (const [id, item] of rightMap.entries()) {
-    if (!leftMap.has(id)) {
-      added.push(transform(item));
-    } else if (stableStringify(leftMap.get(id)) !== stableStringify(item)) {
-      changed.push({
-        before: transform(leftMap.get(id)),
-        after: transform(item),
-      });
-    }
-  }
-
-  for (const [id, item] of leftMap.entries()) {
-    if (!rightMap.has(id)) {
-      removed.push(transform(item));
-    }
-  }
-
-  return { added, removed, changed };
-}
-
-export default class WorkflowDefinitionService {
+export default class WorkflowFactory {
   constructor({
     workflowRepo,
     idGenerator = () => randomUUID(),
-    logger = console,
   } = {}) {
     if (!workflowRepo) {
       throw new Error('workflowRepo is required');
     }
     this.workflowRepo = workflowRepo;
     this.idGenerator = idGenerator;
-    this.logger = logger;
   }
 
   async createWorkflowDefinition(payload = {}) {
@@ -149,22 +116,6 @@ export default class WorkflowDefinitionService {
     };
   }
 
-  async diffWorkflows(leftWorkflowId, rightWorkflowId) {
-    const [left, right] = await Promise.all([
-      this.#loadWorkflowSnapshot(leftWorkflowId),
-      this.#loadWorkflowSnapshot(rightWorkflowId),
-    ]);
-    return {
-      workflows: {
-        left: this.#toWorkflowView(left),
-        right: this.#toWorkflowView(right),
-      },
-      nodes: diffCollections(left.definition.nodes, right.definition.nodes),
-      edges: diffCollections(left.definition.edges, right.definition.edges),
-      dataBindings: diffCollections(left.definition.dataBindings, right.definition.dataBindings),
-    };
-  }
-
   async listWorkflows() {
     return this.workflowRepo.listSummaries();
   }
@@ -176,7 +127,7 @@ export default class WorkflowDefinitionService {
   async #loadWorkflowSnapshot(workflowId) {
     const snapshot = await this.workflowRepo.findById(workflowId);
     if (!snapshot) {
-      throw new NotFoundApplicationError(`Workflow ${workflowId} was not found`);
+      throw new NotFoundError(`Workflow ${workflowId} was not found`);
     }
     return snapshot;
   }

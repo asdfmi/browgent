@@ -1,4 +1,4 @@
-import { NotFoundApplicationError } from '../errors.js';
+import { NotFoundError } from '../errors.js';
 
 export default class WorkflowFeedbackService {
   constructor({
@@ -21,10 +21,10 @@ export default class WorkflowFeedbackService {
       this.executionRepo.findById(executionId),
     ]);
     if (!workflowSnapshot) {
-      throw new NotFoundApplicationError(`Workflow ${workflowId} not found`);
+      throw new NotFoundError(`Workflow ${workflowId} not found`);
     }
     if (!executionSnapshot) {
-      throw new NotFoundApplicationError(`Execution ${executionId} not found`);
+      throw new NotFoundError(`Execution ${executionId} not found`);
     }
     const { definition, metadata } = workflowSnapshot;
 

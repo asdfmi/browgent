@@ -1,9 +1,12 @@
 import 'dotenv/config';
 import express from 'express';
-import RunWorkflowUseCase from './application/run-workflow-use-case.js';
-import WorkflowExecutor from './application/workflow-executor.js';
-import RunManager from './application/run-manager.js';
-import RequestError from './application/request-error.js';
+import {
+  WorkflowExecutor,
+  RunManager,
+  ValidationError,
+  InvariantViolationError,
+  RunWorkflowUseCase,
+} from '#domain/index.js';
 import { postEvent } from './infrastructure/portal/http-run-event-publisher.js';
 import PlaywrightSession from './infrastructure/browser/playwright-session.js';
 import RunEventDispatcher from './infrastructure/portal/ws-run-event-dispatcher.js';
@@ -48,8 +51,11 @@ export function startServer() {
       await runManager.enqueue({ runId, workflow: workflowData });
       return res.status(202).json({ accepted: true });
     } catch (error) {
-      if (error instanceof RequestError) {
-        return res.status(error.status).json(error.body);
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message, ...(error.metadata ?? {}) });
+      }
+      if (error instanceof InvariantViolationError) {
+        return res.status(429).json({ error: error.message, ...(error.metadata ?? {}) });
       }
       console.error('Runner request failed', error);
       return res.status(500).json({ error: 'runner failed', message: error?.message || String(error) });

@@ -12,7 +12,7 @@ const container = buildContainer();
 const runEventHub = createWsRunEventHub();
 
 registerApi(app, {
-  workflowDefinitionService: container.workflowDefinitionService,
+  workflowFactory: container.workflowFactory,
   workflowExecutionService: container.workflowExecutionService,
   runEventHub,
   internalSecret: process.env.INTERNAL_SECRET || "",

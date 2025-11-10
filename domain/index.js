@@ -16,5 +16,15 @@ export { default as ExecutionResult } from './value-objects/execution-result.js'
 export { default as Metric } from './value-objects/metric.js';
 export { default as WorkflowPlan } from './services/workflow-plan.js';
 export { default as WorkflowCursor } from './services/workflow-cursor.js';
+export { default as NodeRunner } from './services/node-runner.js';
+export { default as WorkflowExecutor } from './services/workflow-executor.js';
+export { default as ExecutionContext } from './services/execution-context.js';
+export { buildExecutionView } from './services/execution-view.js';
+export { default as RunManager } from './services/run-manager.js';
+export { default as RunWorkflowUseCase } from './services/run-workflow-use-case.js';
+export { default as WorkflowFactory } from './services/workflow-factory.js';
+export { default as WorkflowExecutionService } from './services/workflow-execution-service.js';
+export { default as WorkflowFeedbackService } from './services/workflow-feedback-service.js';
+export { loadWorkflowDefinition } from './services/workflow-loader.js';
 export * from './errors.js';
 export * from './repositories/index.js';
