@@ -14,5 +14,7 @@ export { default as Condition, CONDITION_TYPES } from './value-objects/condition
 export { default as DataBinding } from './value-objects/data-binding.js';
 export { default as ExecutionResult } from './value-objects/execution-result.js';
 export { default as Metric } from './value-objects/metric.js';
+export { default as WorkflowPlan } from './services/workflow-plan.js';
+export { default as WorkflowCursor } from './services/workflow-cursor.js';
 export * from './errors.js';
 export * from './repositories/index.js';

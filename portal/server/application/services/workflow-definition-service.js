@@ -3,7 +3,7 @@ import { NotFoundApplicationError } from '../errors.js';
 import {
   normalizeWorkflowStructure,
   serializeWorkflow,
-} from '../utils/workflow-structure.js';
+} from '#domain/utils/workflow-structure.js';
 import { stableStringify } from '#domain/utils/object-utils.js';
 
 const identity = (item) => item.id;

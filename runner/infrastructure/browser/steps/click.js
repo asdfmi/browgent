@@ -1,8 +1,8 @@
 import { DEFAULT_SUCCESS_TIMEOUT_SEC } from '../utils.js';
 
-export default async function handleClick({ runner, step }) {
-  const locator = runner.page.locator(`xpath=${step.xpath}`);
-  const options = step.options ?? {};
+export default async function handleClick({ automation, step }) {
+  const { xpath = '', options = {} } = step.config ?? {};
+  const locator = automation.page.locator(`xpath=${xpath}`);
   await locator.click({
     button: options.button || 'left',
     clickCount: options.clickCount,

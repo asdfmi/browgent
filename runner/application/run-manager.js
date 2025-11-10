@@ -1,10 +1,12 @@
-import RequestError from '../errors/request-error.js';
+import RequestError from './request-error.js';
 
 export default class RunManager {
-  constructor({ maxConcurrency, validator, runnerFactory, logger = console } = {}) {
+  constructor({ maxConcurrency, runWorkflow, logger = console } = {}) {
+    if (typeof runWorkflow !== 'function') {
+      throw new Error('runWorkflow is required');
+    }
     this.maxConcurrency = Number(maxConcurrency ?? 1);
-    this.validator = validator;
-    this.runnerFactory = runnerFactory;
+    this.runWorkflow = runWorkflow;
     this.logger = logger;
     this.activeRuns = 0;
   }
@@ -18,11 +20,6 @@ export default class RunManager {
       throw new RequestError(400, { error: 'workflow_required' });
     }
 
-    const { valid, errors } = await this.validator.validate(workflow);
-    if (!valid) {
-      throw new RequestError(400, { error: 'invalid_workflow', details: errors });
-    }
-
     if (!runId) {
       throw new RequestError(400, { error: 'runId required' });
     }
@@ -30,21 +27,24 @@ export default class RunManager {
     if (this.activeRuns >= this.maxConcurrency) {
       throw new RequestError(429, { error: 'runner busy', active: this.activeRuns, max: this.maxConcurrency });
     }
-
     this.activeRuns += 1;
+    let runPromise;
     try {
-      const runner = this.runnerFactory({ workflow, runId });
-      runner
-        .run()
-        .catch((error) => {
-          this.logger.error('Workflow execution failed', error);
-        })
-        .finally(() => {
-          this.activeRuns -= 1;
-        });
+      runPromise = this.runWorkflow({ runId, workflow });
     } catch (error) {
       this.activeRuns -= 1;
-      throw error;
+      if (error instanceof RequestError) {
+        throw error;
+      }
+      throw new RequestError(400, { error: 'invalid_workflow', message: error?.message || 'workflow is invalid' });
     }
+
+    Promise.resolve(runPromise)
+      .catch((error) => {
+        this.logger.error('Workflow execution failed', error);
+      })
+      .finally(() => {
+        this.activeRuns -= 1;
+      });
   }
 }

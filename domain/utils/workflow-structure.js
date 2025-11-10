@@ -1,11 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import {
-  Workflow,
-  Edge,
-  DataBinding,
-  ValidationError,
-  NodeFactory,
-} from '#domain/index.js';
+import Workflow from '../aggregates/workflow.js';
+import Edge from '../value-objects/edge.js';
+import DataBinding from '../value-objects/data-binding.js';
+import { ValidationError } from '../errors.js';
+import NodeFactory from '../factories/node-factory.js';
 
 const toArray = (value) => (Array.isArray(value) ? value : (value ? [value] : []));
 
@@ -104,6 +102,7 @@ export function normalizeWorkflowStructure({
       : id;
     return {
       id,
+      nodeKey: providedKey ?? id,
       workflowId,
       name: labelled,
       type:
@@ -120,6 +119,9 @@ export function normalizeWorkflowStructure({
     if (!edgeInput || typeof edgeInput !== 'object') {
       throw new ValidationError(`Edge[${index + 1}] must be an object`);
     }
+    const providedKey = typeof edgeInput.edgeKey === 'string' && edgeInput.edgeKey.trim()
+      ? edgeInput.edgeKey.trim()
+      : null;
     const fromNodeId = pickNodeRef(edgeInput, index, 'from', nodeKeyMap);
     const toCandidate = edgeInput?.to
       ?? edgeInput?.target
@@ -130,13 +132,17 @@ export function normalizeWorkflowStructure({
     const toNodeId = toCandidate
       ? pickNodeRef({ ...edgeInput, to: toCandidate }, index, 'to', nodeKeyMap)
       : null;
+    const edgeId = (typeof edgeInput.id === 'string' && edgeInput.id.trim()) ? edgeInput.id.trim() : randomUUID();
     return {
-      id: (typeof edgeInput.id === 'string' && edgeInput.id.trim()) ? edgeInput.id.trim() : randomUUID(),
+      id: edgeId,
+      edgeKey: providedKey ?? edgeId,
       workflowId,
       fromNodeId,
       toNodeId,
       condition: edgeInput.condition ?? null,
       priority: typeof edgeInput.priority === 'number' ? edgeInput.priority : null,
+      label: typeof edgeInput.label === 'string' ? edgeInput.label : null,
+      metadata: edgeInput.metadata && typeof edgeInput.metadata === 'object' ? edgeInput.metadata : null,
     };
   });
 

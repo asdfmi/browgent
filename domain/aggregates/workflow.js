@@ -176,4 +176,8 @@ export default class Workflow {
   getEndNodes() {
     return this.endNodeIds.map((nodeId) => this.nodesById.get(nodeId));
   }
+
+  getNodes() {
+    return [...this.nodes];
+  }
 }

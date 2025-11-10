@@ -10,6 +10,7 @@ export default class RunEventDispatcher {
   }
 
   async emit(type, payload = {}) {
+    if (!this.postEvent) return;
     await this.postEvent(this.runId, { type, ...payload });
   }
 

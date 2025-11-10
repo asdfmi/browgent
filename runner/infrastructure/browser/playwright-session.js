@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 
-export default class BrowserSession {
+export default class PlaywrightSession {
   constructor({ logger = console } = {}) {
     this.logger = logger;
     this.browser = null;

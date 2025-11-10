@@ -36,4 +36,15 @@ export default class Node {
   get config() {
     return this.nodeConfig ?? null;
   }
+
+  toExecutionStep() {
+    const config = this.nodeConfig ?? {};
+    return {
+      id: this.id,
+      nodeKey: this.id,
+      name: this.name ?? this.id,
+      type: this.type,
+      config,
+    };
+  }
 }
