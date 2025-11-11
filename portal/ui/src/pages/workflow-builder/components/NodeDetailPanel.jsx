@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Alert,
@@ -11,7 +11,6 @@ import {
 import { NODE_TYPES, BRANCH_CONDITION_TYPES } from "../constants.js";
 import {
   getDefaultConfig,
-  generateEdgeKey,
   createDefaultBranchCondition,
   getBranchConditionType,
   parseNumber,
@@ -31,6 +30,7 @@ export default function NodeDetailPanel({
 }) {
   const [ifBranches, setIfBranches] = useState([]);
   const [ifElseTarget, setIfElseTarget] = useState("");
+  const skipSyncRef = useRef(false);
 
   const handleFieldChange = (field) => (event) => {
     onNodeChange({ [field]: event.target.value });
@@ -71,7 +71,14 @@ export default function NodeDetailPanel({
     }));
 
   /* eslint-disable react-hooks/set-state-in-effect -- state sync between props and local branch editor */
+  const createBranchKey = () => globalThis.crypto.randomUUID();
+
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    if (skipSyncRef.current) {
+      skipSyncRef.current = false;
+      return;
+    }
     if (!node || !isIfNode) {
       setIfBranches([]);
       setIfElseTarget("");
@@ -82,7 +89,7 @@ export default function NodeDetailPanel({
     } else if (conditionalEdges.length === 0 && ifBranches.length === 0) {
       setIfBranches([
         {
-          edgeKey: "",
+          edgeKey: createBranchKey(),
           targetKey: "",
           condition: createDefaultBranchCondition("visible"),
           priority: 0,
@@ -106,7 +113,9 @@ export default function NodeDetailPanel({
   const ensureKey = (usedKeys, edgeKey) => {
     let key = String(edgeKey || "").trim();
     if (!key || usedKeys.has(key)) {
-      key = generateEdgeKey([...usedKeys]);
+      do {
+        key = globalThis.crypto.randomUUID();
+      } while (usedKeys.has(key));
     }
     usedKeys.add(key);
     return key;
@@ -115,11 +124,13 @@ export default function NodeDetailPanel({
   const emitDefaultEdge = (targetKey) => {
     const trimmedDefault = String(targetKey || "").trim();
     if (!trimmedDefault) {
+      skipSyncRef.current = true;
       onEdgesChange([]);
       return;
     }
     const usedKeys = new Set(edgeKeys);
     const key = ensureKey(usedKeys, defaultEdge?.edgeKey);
+    skipSyncRef.current = true;
     onEdgesChange([
       {
         edgeKey: key,
@@ -167,6 +178,7 @@ export default function NodeDetailPanel({
       });
     }
 
+    skipSyncRef.current = true;
     onEdgesChange(payload);
   };
 
@@ -199,7 +211,7 @@ export default function NodeDetailPanel({
     const next = [
       ...ifBranches,
       {
-        edgeKey: "",
+        edgeKey: createBranchKey(),
         targetKey: "",
         condition: createDefaultBranchCondition("visible"),
         priority: ifBranches.length,
@@ -231,11 +243,7 @@ export default function NodeDetailPanel({
       {error ? <Alert severity="error">{error}</Alert> : null}
 
       <Stack>
-        <TextField
-          label="Node key"
-          value={node.nodeKey ?? ""}
-          onChange={handleFieldChange("nodeKey")}
-        />
+        <TextField label="Node key" value={node.nodeKey ?? ""} disabled />
         <TextField
           select
           label="Node type"

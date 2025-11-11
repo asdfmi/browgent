@@ -2,7 +2,6 @@ import {
   createEmptyNode,
   toEditableEdge,
   toEditableNode,
-  generateEdgeKey,
 } from "../pages/workflow-builder/utils/workflowBuilder.js";
 
 const NODE_WIDTH = 184;
@@ -143,10 +142,7 @@ export default class GraphCore extends EventTarget {
       const sourceKey = prev.nodes[prev.nodes.length - 1]?.nodeKey?.trim();
       const targetKey = newNode.nodeKey?.trim();
       if (sourceKey && targetKey) {
-        const existingEdgeKeys = prev.edges
-          .map((edge) => String(edge.edgeKey || "").trim())
-          .filter(Boolean);
-        const edgeKey = generateEdgeKey(existingEdgeKeys);
+        const edgeKey = globalThis.crypto.randomUUID();
         const autoEdge = {
           edgeKey,
           sourceKey,

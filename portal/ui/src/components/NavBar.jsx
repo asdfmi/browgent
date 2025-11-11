@@ -1,23 +1,18 @@
 import PropTypes from "prop-types";
-import { AppBar, Toolbar, Typography, Button } from "@mui/material";
+import { AppBar, Toolbar, Typography } from "@mui/material";
 
-const links = [{ key: "workflows", label: "Workflows", href: "/" }];
-
-export default function NavBar({ current } = {}) {
+export default function NavBar() {
   return (
     <AppBar>
       <Toolbar>
-        <Typography>agent-flow</Typography>
-        {links.map((link) => (
-          <Button
-            key={link.key}
-            component="a"
-            href={link.href}
-            disabled={current === link.key}
-          >
-            {link.label}
-          </Button>
-        ))}
+        <Typography
+          component="a"
+          href="/"
+          color="inherit"
+          sx={{ textDecoration: "none" }}
+        >
+          agent-flow
+        </Typography>
       </Toolbar>
     </AppBar>
   );

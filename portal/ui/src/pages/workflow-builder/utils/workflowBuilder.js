@@ -16,17 +16,32 @@ export function getBuilderContext(pathname) {
   return { workflowId: null, isNew: false };
 }
 
-export function createEmptyNode(existingNodes) {
-  const existingKeys = existingNodes.map((node) => node.nodeKey);
-  const nodeKey = generateNodeKey(existingKeys);
+export function createEmptyNode(existingNodes = []) {
+  const nodeKey = globalThis.crypto.randomUUID();
+  const label = generateNodeLabel(existingNodes);
   return {
     nodeKey,
-    label: "",
+    label,
     type: "navigate",
     config: getDefaultConfig("navigate"),
     positionX: null,
     positionY: null,
   };
+}
+
+function generateNodeLabel(existingNodes = []) {
+  const taken = new Set(
+    existingNodes
+      .map((node) => (typeof node?.label === "string" ? node.label.trim() : ""))
+      .filter(Boolean),
+  );
+  let index = existingNodes.length + 1;
+  let candidate = `node_${index}`;
+  while (taken.has(candidate)) {
+    index += 1;
+    candidate = `node_${index}`;
+  }
+  return candidate;
 }
 
 export function toEditableNode(node) {
@@ -194,7 +209,7 @@ export function buildPayload(form) {
     const label = `Edge ${index + 1}`;
     let edgeKey = String(edge.edgeKey || "").trim();
     if (!edgeKey) {
-      edgeKey = generateEdgeKey(edgeKeys);
+      edgeKey = globalThis.crypto.randomUUID();
     }
     if (edgeKeys.has(edgeKey)) {
       errors.push(`${label}: edge key must be unique`);
@@ -283,28 +298,6 @@ export function formatApiError(payload) {
     segments.push(payload.message);
   }
   return segments.length > 0 ? segments.join("\n") : "Failed to save workflow";
-}
-
-export function generateNodeKey(existingKeys) {
-  const taken = new Set(existingKeys);
-  let index = existingKeys.length + 1;
-  let candidate = `node_${index}`;
-  while (taken.has(candidate)) {
-    index += 1;
-    candidate = `node_${index}`;
-  }
-  return candidate;
-}
-
-export function generateEdgeKey(existingKeys) {
-  const taken = new Set(existingKeys);
-  let index = taken.size + 1;
-  let candidate = `edge_${index}`;
-  while (taken.has(candidate)) {
-    index += 1;
-    candidate = `edge_${index}`;
-  }
-  return candidate;
 }
 
 function hasCycle(nodeKeys, edges) {
