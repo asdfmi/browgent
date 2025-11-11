@@ -30,15 +30,8 @@ export default function NodeDetailPanel({
   saving,
   error,
 }) {
-  if (!node) {
-    return (
-      <Stack spacing={1}>
-        <Typography variant="body2" color="text.secondary">
-          Select a node from the list to edit its configuration.
-        </Typography>
-      </Stack>
-    );
-  }
+  const [ifBranches, setIfBranches] = useState([]);
+  const [ifElseTarget, setIfElseTarget] = useState("");
 
   const handleFieldChange = (field) => (event) => {
     onNodeChange({ [field]: event.target.value });
@@ -53,10 +46,7 @@ export default function NodeDetailPanel({
     onEdgesChange([]);
   };
 
-  const isIfNode = node.type === "if";
-  const [ifBranches, setIfBranches] = useState([]);
-  const [ifElseTarget, setIfElseTarget] = useState("");
-
+  const isIfNode = node?.type === "if";
   const edgeKeys = (allEdges || [])
     .map((edge) => String(edge.edgeKey || "").trim())
     .filter(Boolean);
@@ -80,8 +70,10 @@ export default function NodeDetailPanel({
       condition: edge.condition,
       priority: typeof edge.priority === "number" ? edge.priority : index,
     }));
+
+  /* eslint-disable react-hooks/set-state-in-effect -- state sync between props and local branch editor */
   useEffect(() => {
-    if (!isIfNode) {
+    if (!node || !isIfNode) {
       setIfBranches([]);
       setIfElseTarget("");
       return;
@@ -99,7 +91,18 @@ export default function NodeDetailPanel({
       ]);
     }
     setIfElseTarget(defaultTarget ?? "");
-  }, [isIfNode, conditionalEdges, defaultTarget, ifBranches.length]);
+  }, [node, isIfNode, conditionalEdges, defaultTarget, ifBranches.length]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  if (!node) {
+    return (
+      <Stack spacing={1}>
+        <Typography variant="body2" color="text.secondary">
+          Select a node from the list to edit its configuration.
+        </Typography>
+      </Stack>
+    );
+  }
 
   const ensureKey = (usedKeys, edgeKey) => {
     let key = String(edgeKey || "").trim();
