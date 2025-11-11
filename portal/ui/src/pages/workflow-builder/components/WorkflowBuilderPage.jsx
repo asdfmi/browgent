@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Box,
   Button,
   Chip,
   CircularProgress,
-  Container,
   Paper,
   Stack,
   TextField,
@@ -315,33 +315,85 @@ export default function WorkflowBuilderPage() {
 
   if (isLoading) {
     return (
-      <Container>
-        <Stack>
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 2,
+        }}
+      >
+        <Stack spacing={2} alignItems="center">
           <CircularProgress />
           <Typography>Loading...</Typography>
         </Stack>
-      </Container>
+      </Box>
     );
   }
 
   if (loadError && !workflowState.data) {
     return (
-      <Container>
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          p: 2,
+        }}
+      >
         <Alert severity="error">{loadError}</Alert>
-      </Container>
+      </Box>
     );
   }
 
   return (
-    <Container>
-      <Stack>
-        <Paper>
-          <GraphViewport graphCore={graphCore} />
-        </Paper>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        pb: { xs: 3, md: 0 },
+      }}
+    >
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+        }}
+      >
+        <GraphViewport graphCore={graphCore} />
+      </Box>
 
-        <Paper>
-          <Stack>
-            <Stack>
+      <Box
+        sx={{
+          position: { xs: "relative", lg: "absolute" },
+          top: { lg: 24 },
+          left: { lg: 24 },
+          width: { xs: "100%", sm: 420 },
+          maxWidth: 480,
+          zIndex: 1,
+          pointerEvents: "auto",
+          px: { xs: 2, lg: 0 },
+          mb: { xs: 2, lg: 0 },
+        }}
+      >
+        <Paper
+          elevation={4}
+          sx={{
+            p: 2,
+            bgcolor: "background.paper",
+            maxHeight: { xs: "none", lg: "70vh" },
+            overflow: "auto",
+          }}
+        >
+          <Stack spacing={2}>
+            <Stack spacing={1}>
               <TextField
                 label="Workflow title"
                 value={form.title}
@@ -350,14 +402,17 @@ export default function WorkflowBuilderPage() {
                   metaTitleChange(event);
                 }}
               />
-              <Stack>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button
+                  variant="contained"
                   onClick={handleSave}
                   disabled={isSaving || !hasPendingChanges}
                 >
                   Save
                 </Button>
                 <Button
+                  variant="contained"
+                  color="success"
                   onClick={onRun}
                   disabled={
                     !workflowId ||
@@ -368,6 +423,7 @@ export default function WorkflowBuilderPage() {
                   Run
                 </Button>
                 <Button
+                  variant="outlined"
                   onClick={() => setViewerOpen(true)}
                   disabled={!workflowId}
                 >
@@ -375,6 +431,7 @@ export default function WorkflowBuilderPage() {
                 </Button>
               </Stack>
             </Stack>
+
             <TextField
               label="Description"
               value={form.description}
@@ -385,7 +442,8 @@ export default function WorkflowBuilderPage() {
               multiline
               minRows={2}
             />
-            <Stack>
+
+            <Stack spacing={1}>
               <TextField
                 select
                 label="Start node"
@@ -404,7 +462,7 @@ export default function WorkflowBuilderPage() {
                   <MenuItem value="">No nodes</MenuItem>
                 ) : null}
               </TextField>
-              <Stack>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button onClick={handleAddNodeAndEdit}>Add node</Button>
                 <Button
                   onClick={handleDeleteSelectedNode}
@@ -423,20 +481,23 @@ export default function WorkflowBuilderPage() {
                 </Button>
               </Stack>
             </Stack>
-            <Stack>
+
+            <Stack direction="row" spacing={1} flexWrap="wrap">
               <Chip label={`Run: ${runState.status}`} />
               <Chip label={`WS: ${wsStatus}`} />
               <Chip label={`Nodes: ${form.nodes.length}`} />
               {hasPendingChanges ? <Chip label="Unsaved" /> : null}
             </Stack>
+
             {isNewWorkflow ? (
               <Alert severity="info">
                 This workflow is not saved yet. Add nodes and press Save to
                 create it.
               </Alert>
             ) : null}
+
             {runError || saveError || (loadError && workflowState.data) ? (
-              <Stack>
+              <Stack spacing={1}>
                 {runError ? <Alert severity="error">{runError}</Alert> : null}
                 {saveError ? (
                   <Alert severity="error">
@@ -452,8 +513,29 @@ export default function WorkflowBuilderPage() {
             ) : null}
           </Stack>
         </Paper>
+      </Box>
 
-        <Paper>
+      <Box
+        sx={{
+          position: { xs: "relative", lg: "absolute" },
+          top: { lg: 24 },
+          right: { lg: 24 },
+          bottom: { lg: 24 },
+          width: { xs: "100%", lg: 380 },
+          maxWidth: 420,
+          zIndex: 1,
+          pointerEvents: "auto",
+          px: { xs: 2, lg: 0 },
+        }}
+      >
+        <Paper
+          elevation={4}
+          sx={{
+            p: 2,
+            height: { xs: "auto", lg: "100%" },
+            overflow: "auto",
+          }}
+        >
           <NodeDetailPanel
             node={selectedNode}
             edges={nodeEdges}
@@ -466,7 +548,21 @@ export default function WorkflowBuilderPage() {
             error={saveError}
           />
         </Paper>
-        <Paper>
+      </Box>
+
+      <Box
+        sx={{
+          position: { xs: "relative", lg: "absolute" },
+          left: { lg: 24 },
+          bottom: { lg: 24 },
+          width: { xs: "100%", sm: 420 },
+          maxWidth: 500,
+          zIndex: 1,
+          pointerEvents: "auto",
+          px: { xs: 2, lg: 0 },
+        }}
+      >
+        <Paper elevation={4} sx={{ p: 2 }}>
           <WorkflowRunHistory
             runs={runsState.data}
             loading={runsState.loading}
@@ -474,7 +570,7 @@ export default function WorkflowBuilderPage() {
             onRefresh={handleRefreshRuns}
           />
         </Paper>
-      </Stack>
+      </Box>
 
       <ExecutionViewerModal
         open={isViewerOpen}
@@ -486,6 +582,6 @@ export default function WorkflowBuilderPage() {
         nodes={viewerNodes}
         currentStepIndex={currentStepIndex}
       />
-    </Container>
+    </Box>
   );
 }
