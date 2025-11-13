@@ -122,7 +122,7 @@ export function getDefaultConfig(type) {
     case "click":
       return { xpath: "", button: "left", clickCount: 1, delay: 0, timeout: 5 };
     case "fill":
-      return { xpath: "", clear: false };
+      return { xpath: "", clear: false, value: "" };
     case "press":
       return { xpath: "", key: "", delay: null };
     case "log":
@@ -173,6 +173,10 @@ function applyConfigDefaults(type, config) {
   }
   if (type === "click") {
     const defaults = getDefaultConfig("click");
+    return { ...defaults, ...config };
+  }
+  if (type === "fill") {
+    const defaults = getDefaultConfig("fill");
     return { ...defaults, ...config };
   }
   if (type === "wait") {
@@ -574,6 +578,11 @@ function validateConfig(type, config, label) {
   } else if (type === "fill") {
     if (!config || !config.xpath)
       errors.push(`${label}: XPath is required for fill nodes`);
+    const template =
+      typeof config?.value === "string" ? config.value.trim() : "";
+    if (!template) {
+      errors.push(`${label}: Value template is required for fill nodes`);
+    }
   } else if (type === "press") {
     if (!config || !config.xpath)
       errors.push(`${label}: XPath is required for press nodes`);

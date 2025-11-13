@@ -17,10 +17,13 @@ export default function FillConfigFields({ config, onChange }) {
         value={config.xpath ?? ""}
         onChange={(event) => setConfig({ xpath: event.target.value })}
       />
-      <Typography color="text.secondary">
-        Value is supplied via streams. Connect an upstream node in the Streams
-        panel to feed this input.
-      </Typography>
+      <TextField
+        label="Value"
+        value={config.value ?? ""}
+        onChange={(event) => setConfig({ value: event.target.value || "" })}
+        helperText="Enter the text to type. Use {{sourceNodeKey}} placeholders to inject stream outputs."
+        required
+      />
       <FormControlLabel
         control={
           <Checkbox

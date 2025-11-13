@@ -1,12 +1,4 @@
-import { DEFAULT_SUCCESS_TIMEOUT_SEC } from "../utils.js";
-
-function resolveInputValue(step, name) {
-  const payload = step?.inputValues?.[name];
-  if (Array.isArray(payload)) {
-    return payload.length > 0 ? payload[0] : undefined;
-  }
-  return payload;
-}
+import { DEFAULT_SUCCESS_TIMEOUT_SEC, renderTemplate } from "../utils.js";
 
 export default async function handleFill({ automation, step }) {
   const {
@@ -14,16 +6,11 @@ export default async function handleFill({ automation, step }) {
     clear = false,
     timeout: timeoutSeconds = DEFAULT_SUCCESS_TIMEOUT_SEC,
   } = step.config ?? {};
-  const value = resolveInputValue(step, "value");
-  if (typeof value === "undefined") {
-    throw new Error(
-      `fill node "${step.id}" requires a bound input for "value"`,
-    );
-  }
+  const value = renderTemplate(step.config.value, step.inputValues ?? {});
   const locator = automation.page.locator(`xpath=${xpath}`);
   const timeout = timeoutSeconds * 1000;
   if (clear) {
     await locator.fill("", { timeout });
   }
-  await locator.fill(value === null ? "" : String(value), { timeout });
+  await locator.fill(value, { timeout });
 }

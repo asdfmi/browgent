@@ -340,8 +340,7 @@ export default class GraphCore extends EventTarget {
           sourceKey: String(stream.sourceKey || "").trim(),
           targetKey: nodeKey,
         };
-      })
-      .filter((stream) => stream.sourceKey);
+      });
     const remainder = prev.streams.filter(
       (stream) => stream.targetKey !== nodeKey,
     );
