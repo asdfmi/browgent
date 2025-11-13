@@ -57,7 +57,7 @@ export default class WorkflowController {
         description: definitionInput.description,
         nodes: definitionInput.nodes,
         edges: definitionInput.edges,
-        dataBindings: definitionInput.dataBindings,
+        streams: definitionInput.streams,
       },
     );
     res.json({ data: formatWorkflowDetail(updated) });
@@ -101,7 +101,7 @@ export default class WorkflowController {
       description: publication.definition.description,
       nodes: publication.definition.nodes,
       edges: publication.definition.edges,
-      dataBindings: publication.definition.dataBindings,
+      streams: publication.definition.streams,
     };
     await this.runnerClient.triggerRun({
       runId,
@@ -134,8 +134,8 @@ function buildDefinitionPayload(workflowId, payload) {
       typeof payload.description === "string" ? payload.description : null,
     nodes,
     edges,
-    dataBindings: Array.isArray(payload.dataBindings)
-      ? payload.dataBindings
+    streams: Array.isArray(payload.streams)
+      ? payload.streams
       : [],
   };
 }
@@ -157,8 +157,6 @@ function convertBuilderNodes(nodesInput = []) {
           ? node.label.trim()
           : candidate,
       type: node?.type || "navigate",
-      inputs: Array.isArray(node?.inputs) ? node.inputs : [],
-      outputs: Array.isArray(node?.outputs) ? node.outputs : [],
       config: node?.config ?? null,
       positionX,
       positionY,
@@ -234,8 +232,8 @@ function formatWorkflowSummary(row) {
 function formatWorkflowDetail(view) {
   const nodes = Array.isArray(view.nodes) ? view.nodes.map(toBuilderNode) : [];
   const edges = Array.isArray(view.edges) ? view.edges.map(toBuilderEdge) : [];
-  const dataBindings = Array.isArray(view.dataBindings)
-    ? view.dataBindings.map(toBuilderBinding)
+  const streams = Array.isArray(view.streams)
+    ? view.streams.map(toBuilderStream)
     : [];
   return {
     id: view.id,
@@ -244,7 +242,7 @@ function formatWorkflowDetail(view) {
     startNodeId: view.startNodeId ?? nodes[0]?.nodeKey ?? "",
     nodes,
     edges,
-    dataBindings,
+    streams,
     createdAt: toISO(view.createdAt),
     updatedAt: toISO(view.updatedAt),
   };
@@ -265,8 +263,6 @@ function toBuilderNode(node, index) {
     config: node?.config ?? {},
     positionX,
     positionY,
-    inputs: Array.isArray(node?.inputs) ? node.inputs : [],
-    outputs: Array.isArray(node?.outputs) ? node.outputs : [],
   };
 }
 
@@ -290,16 +286,13 @@ function toBuilderEdge(edge, index) {
   };
 }
 
-function toBuilderBinding(binding, index) {
+function toBuilderStream(stream, index) {
   return {
-    bindingKey: String(
-      binding?.bindingKey || binding?.id || `binding_${index + 1}`,
+    streamKey: String(
+      stream?.streamKey || stream?.id || `stream_${index + 1}`,
     ).trim(),
-    sourceKey: String(binding?.sourceKey || binding?.sourceNodeId || "").trim(),
-    sourceOutput: binding?.sourceOutput ?? "",
-    targetKey: String(binding?.targetKey || binding?.targetNodeId || "").trim(),
-    targetInput: binding?.targetInput ?? "",
-    transform: binding?.transform ?? null,
+    sourceKey: String(stream?.sourceKey || stream?.sourceNodeId || "").trim(),
+    targetKey: String(stream?.targetKey || stream?.targetNodeId || "").trim(),
   };
 }
 

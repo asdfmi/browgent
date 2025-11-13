@@ -41,14 +41,14 @@ export function loadWorkflowDefinition(input = {}) {
   }
 
   const edges = toArray(base.edges);
-  const dataBindings = toArray(base.dataBindings);
+  const streams = toArray(base.streams);
 
   const normalized = normalizeWorkflowStructure({
     workflowId,
     name,
     nodes,
     edges,
-    dataBindings,
+    streams,
   });
 
   const startCandidate = pickString(

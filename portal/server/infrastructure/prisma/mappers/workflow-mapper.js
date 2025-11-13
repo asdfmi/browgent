@@ -1,10 +1,10 @@
-import { Workflow, Edge, DataBinding, NodeFactory } from "@agent-flow/domain";
+import { Workflow, Edge, Stream, NodeFactory } from "@agent-flow/domain";
 
 export function toDomainWorkflow({
   workflowRecord,
   nodeRecords = [],
   edgeRecords = [],
-  bindingRecords = [],
+  streamRecords = [],
 }) {
   if (!workflowRecord) return null;
   return new Workflow({
@@ -15,8 +15,6 @@ export function toDomainWorkflow({
         id: node.id,
         name: node.name,
         type: node.type,
-        inputs: node.inputs ?? [],
-        outputs: node.outputs ?? [],
         config: node.config ?? null,
       }),
     ),
@@ -29,14 +27,11 @@ export function toDomainWorkflow({
           priority: edge.priority,
         }),
     ),
-    dataBindings: bindingRecords.map(
-      (binding) =>
-        new DataBinding({
-          sourceNodeId: binding.sourceNodeId,
-          sourceOutput: binding.sourceOutput,
-          targetNodeId: binding.targetNodeId,
-          targetInput: binding.targetInput,
-          transform: binding.transform,
+    streams: streamRecords.map(
+      (stream) =>
+        new Stream({
+          sourceNodeId: stream.sourceNodeId,
+          targetNodeId: stream.targetNodeId,
         }),
     ),
   });

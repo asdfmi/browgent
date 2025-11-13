@@ -58,7 +58,7 @@ export default function WorkflowBuilderPage() {
     handleSelectNode,
     handleNodeChange,
     replaceEdgesForNode,
-    replaceBindingsForNode,
+    replaceStreamsForNode,
     syncFromWorkflow,
     graphCore,
   } = useWorkflowBuilderForm(workflowState.data);
@@ -275,12 +275,12 @@ export default function WorkflowBuilderPage() {
     if (!selectedNodeKey) return [];
     return form.edges.filter((edge) => edge.sourceKey === selectedNodeKey);
   }, [form.edges, selectedNodeKey]);
-  const selectedNodeBindings = useMemo(() => {
+  const selectedNodeStreams = useMemo(() => {
     if (!selectedNodeKey) return [];
-    return (form.dataBindings || []).filter(
-      (binding) => binding.targetKey === selectedNodeKey,
+    return (form.streams || []).filter(
+      (stream) => stream.targetKey === selectedNodeKey,
     );
-  }, [form.dataBindings, selectedNodeKey]);
+  }, [form.streams, selectedNodeKey]);
 
   useEffect(() => {
     const currentKey = selectedNode?.nodeKey ?? "";
@@ -303,16 +303,16 @@ export default function WorkflowBuilderPage() {
     [replaceEdgesForNode, selectedNodeKey],
   );
 
-  const handleNodeBindingsChange = useCallback(
+  const handleNodeStreamsChange = useCallback(
     (nodeKey, builder) => {
       if (!nodeKey) return;
       setSaveError("");
-      const nextForm = replaceBindingsForNode(nodeKey, builder);
+      const nextForm = replaceStreamsForNode(nodeKey, builder);
       if (nextForm) {
         latestFormRef.current = nextForm;
       }
     },
-    [replaceBindingsForNode],
+    [replaceStreamsForNode],
   );
 
   useEffect(() => {
@@ -479,12 +479,12 @@ export default function WorkflowBuilderPage() {
               edges={nodeEdges}
               allEdges={form.edges}
               allNodes={form.nodes}
-              bindings={selectedNodeBindings}
+              streams={selectedNodeStreams}
               onNodeChange={handleNodePartialChange}
               onEdgesChange={handleNodeEdgesChange}
-              onBindingsChange={(builder) =>
+              onStreamsChange={(builder) =>
                 selectedNodeKey
-                  ? handleNodeBindingsChange(selectedNodeKey, builder)
+                  ? handleNodeStreamsChange(selectedNodeKey, builder)
                   : undefined
               }
               onDelete={handleDeleteSelectedNode}

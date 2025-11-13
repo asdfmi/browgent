@@ -65,7 +65,7 @@ export default class WorkflowFeedbackService {
         nodeId,
         nodeName: nodeDictionary.get(nodeId)?.name ?? nodeId,
         recommendation:
-          "Input bindings or conditions might be missing; review definition.",
+          "Streams or conditions might be missing; review definition.",
       })),
     ];
 
@@ -93,7 +93,7 @@ export default class WorkflowFeedbackService {
       waitingNodes: running.length,
       pendingNodes: pendingIds.length,
       edges: definition.edges.length,
-      dataBindings: definition.dataBindings.length,
+      streams: definition.streams.length,
     };
 
     return {

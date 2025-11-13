@@ -1,7 +1,6 @@
 import {
   createEmptyNode,
-  getDefaultPorts,
-  toEditableBinding,
+  toEditableStream,
   toEditableEdge,
   toEditableNode,
 } from "../pages/workflow-builder/utils/workflowBuilder.js";
@@ -14,7 +13,7 @@ const EMPTY_FORM = {
   startNodeId: "",
   nodes: [],
   edges: [],
-  dataBindings: [],
+  streams: [],
 };
 
 const GRAPH_CHANGED_EVENT = "graph:changed";
@@ -97,8 +96,8 @@ export default class GraphCore extends EventTarget {
     const edges = Array.isArray(nextWorkflow.edges)
       ? nextWorkflow.edges.map(toEditableEdge)
       : [];
-    const dataBindings = Array.isArray(nextWorkflow.dataBindings)
-      ? nextWorkflow.dataBindings.map(toEditableBinding).filter(Boolean)
+    const streams = Array.isArray(nextWorkflow.streams)
+      ? nextWorkflow.streams.map(toEditableStream).filter(Boolean)
       : [];
 
     this.lastSync = {
@@ -112,7 +111,7 @@ export default class GraphCore extends EventTarget {
       startNodeId,
       nodes,
       edges,
-      dataBindings,
+      streams,
     };
     if (nodes.length === 0) {
       this.selectedIndex = -1;
@@ -181,9 +180,8 @@ export default class GraphCore extends EventTarget {
     const edges = prev.edges.filter(
       (edge) => edge.sourceKey !== nodeKey && edge.targetKey !== nodeKey,
     );
-    const dataBindings = prev.dataBindings.filter(
-      (binding) =>
-        binding.sourceKey !== nodeKey && binding.targetKey !== nodeKey,
+    const streams = prev.streams.filter(
+      (stream) => stream.sourceKey !== nodeKey && stream.targetKey !== nodeKey,
     );
     const startNodeId =
       nodeKey === prev.startNodeId
@@ -196,7 +194,7 @@ export default class GraphCore extends EventTarget {
     } else if (this.selectedIndex === index) {
       this.selectedIndex = Math.min(index, nodes.length - 1);
     }
-    this.state = { ...prev, nodes, edges, dataBindings, startNodeId };
+    this.state = { ...prev, nodes, edges, streams, startNodeId };
     this.#ensurePositions(nodes);
     this.#commit({ viewChanged: true });
     return this.state;
@@ -232,20 +230,14 @@ export default class GraphCore extends EventTarget {
     const prev = this.state;
     const currentNode = prev.nodes[index];
     let nextNode = { ...currentNode, ...updates };
-    let dataBindings = prev.dataBindings;
+    let streams = prev.streams;
     const typeChanged =
       typeof updates.type === "string" && updates.type !== currentNode.type;
     if (typeChanged) {
-      const ports = getDefaultPorts(updates.type);
-      nextNode = {
-        ...nextNode,
-        inputs: ports.inputs,
-        outputs: ports.outputs,
-      };
-      dataBindings = dataBindings.filter(
-        (binding) =>
-          binding.sourceKey !== currentNode.nodeKey &&
-          binding.targetKey !== currentNode.nodeKey,
+      streams = streams.filter(
+        (stream) =>
+          stream.sourceKey !== currentNode.nodeKey &&
+          stream.targetKey !== currentNode.nodeKey,
       );
     }
     const nodes = prev.nodes.map((node, i) => (i === index ? nextNode : node));
@@ -276,22 +268,22 @@ export default class GraphCore extends EventTarget {
         this.nodePositions.set(nextKey, position);
         this.nodePositions.delete(currentKey);
       }
-      dataBindings = dataBindings.map((binding) => {
-        if (!binding) return binding;
+      streams = streams.map((stream) => {
+        if (!stream) return stream;
         let changed = false;
-        const updated = { ...binding };
-        if (binding.sourceKey === currentKey) {
+        const updated = { ...stream };
+        if (stream.sourceKey === currentKey) {
           updated.sourceKey = nextKey;
           changed = true;
         }
-        if (binding.targetKey === currentKey) {
+        if (stream.targetKey === currentKey) {
           updated.targetKey = nextKey;
           changed = true;
         }
-        return changed ? updated : binding;
+        return changed ? updated : stream;
       });
     }
-    this.state = { ...prev, nodes, edges, dataBindings, startNodeId };
+    this.state = { ...prev, nodes, edges, streams, startNodeId };
     this.#ensurePositions(nodes);
     this.#commit({ viewChanged: true });
     return this.state;
@@ -329,45 +321,33 @@ export default class GraphCore extends EventTarget {
     return this.state;
   }
 
-  replaceBindingsForNode(nodeKey, builder) {
+  replaceStreamsForNode(nodeKey, builder) {
     if (!nodeKey) return this.state;
     const prev = this.state;
-    const existing = prev.dataBindings.filter(
-      (binding) => binding.targetKey === nodeKey,
+    const existing = prev.streams.filter(
+      (stream) => stream.targetKey === nodeKey,
     );
-    const nextBindingsRaw = builder(existing, prev) || [];
-    const sanitized = nextBindingsRaw
-      .filter((binding) => binding && binding.targetKey === nodeKey)
-      .map((binding) => {
-        const bindingKey =
-          typeof binding.bindingKey === "string" && binding.bindingKey.trim()
-            ? binding.bindingKey.trim()
+    const nextStreamsRaw = builder(existing, prev) || [];
+    const sanitized = nextStreamsRaw
+      .filter((stream) => stream && stream.targetKey === nodeKey)
+      .map((stream) => {
+        const streamKey =
+          typeof stream.streamKey === "string" && stream.streamKey.trim()
+            ? stream.streamKey.trim()
             : globalThis.crypto.randomUUID();
         return {
-          bindingKey,
-          sourceKey: String(binding.sourceKey || "").trim(),
-          sourceOutput:
-            typeof binding.sourceOutput === "string"
-              ? binding.sourceOutput.trim()
-              : "",
+          streamKey,
+          sourceKey: String(stream.sourceKey || "").trim(),
           targetKey: nodeKey,
-          targetInput:
-            typeof binding.targetInput === "string"
-              ? binding.targetInput.trim()
-              : "",
-          transform:
-            binding.transform && typeof binding.transform === "object"
-              ? binding.transform
-              : null,
         };
       })
-      .filter((binding) => binding.sourceKey && binding.targetInput);
-    const remainder = prev.dataBindings.filter(
-      (binding) => binding.targetKey !== nodeKey,
+      .filter((stream) => stream.sourceKey);
+    const remainder = prev.streams.filter(
+      (stream) => stream.targetKey !== nodeKey,
     );
     this.state = {
       ...prev,
-      dataBindings: [...remainder, ...sanitized],
+      streams: [...remainder, ...sanitized],
     };
     this.#commit();
     return this.state;

@@ -18,8 +18,8 @@ export default function FillConfigFields({ config, onChange }) {
         onChange={(event) => setConfig({ xpath: event.target.value })}
       />
       <Typography color="text.secondary">
-        Value is supplied via data bindings. Connect an upstream node to the
-        `value` input in the bindings panel.
+        Value is supplied via streams. Connect an upstream node in the Streams
+        panel to feed this input.
       </Typography>
       <FormControlLabel
         control={

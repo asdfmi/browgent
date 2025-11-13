@@ -49,8 +49,8 @@ export function useWorkflowBuilderForm(workflow) {
     (nodeKey, builder) => graphCore.replaceEdgesForNode(nodeKey, builder),
     [graphCore],
   );
-  const replaceBindingsForNode = useCallback(
-    (nodeKey, builder) => graphCore.replaceBindingsForNode(nodeKey, builder),
+  const replaceStreamsForNode = useCallback(
+    (nodeKey, builder) => graphCore.replaceStreamsForNode(nodeKey, builder),
     [graphCore],
   );
 
@@ -65,7 +65,7 @@ export function useWorkflowBuilderForm(workflow) {
     handleSelectNode,
     handleNodeChange,
     replaceEdgesForNode,
-    replaceBindingsForNode,
+    replaceStreamsForNode,
     syncFromWorkflow,
     graphCore,
   };

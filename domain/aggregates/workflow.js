@@ -1,6 +1,6 @@
 import NodeFactory from "../factories/node-factory.js";
 import Edge from "../value-objects/edge.js";
-import DataBinding from "../value-objects/data-binding.js";
+import Stream from "../value-objects/stream.js";
 import { assertInvariant, requireNonEmptyString } from "../utils/validation.js";
 import { stableStringify } from "../utils/object-utils.js";
 import { hasCycle, computeDegrees } from "../utils/graph.js";
@@ -18,7 +18,7 @@ function routeKey(edge) {
 }
 
 export default class Workflow {
-  constructor({ id, name, nodes = [], edges = [], dataBindings = [] }) {
+  constructor({ id, name, nodes = [], edges = [], streams = [] }) {
     this.id = requireNonEmptyString(id, "Workflow.id");
     this.name = requireNonEmptyString(name, "Workflow.name");
 
@@ -40,21 +40,17 @@ export default class Workflow {
       throw new InvariantViolationError("Workflow.edges must be an array");
     }
     this.edges = edges.map((edge) => Edge.from(edge));
-    if (!Array.isArray(dataBindings)) {
-      throw new InvariantViolationError(
-        "Workflow.dataBindings must be an array",
-      );
+    if (!Array.isArray(streams)) {
+      throw new InvariantViolationError("Workflow.streams must be an array");
     }
-    this.dataBindings = dataBindings.map((binding) =>
-      DataBinding.from(binding),
-    );
+    this.streams = streams.map((stream) => Stream.from(stream));
 
     this.edgesBySource = new Map();
     this.edgesByTarget = new Map();
     this.#buildEdgeIndexes();
     this.#validateEdges();
     this.#validateGraph();
-    this.#validateBindings();
+    this.#validateStreams();
   }
 
   #buildEdgeIndexes() {
@@ -122,49 +118,37 @@ export default class Workflow {
     );
   }
 
-  #validateBindings() {
+  #validateStreams() {
     const coverage = new Map();
     for (const node of this.nodes) {
       coverage.set(node.id, new Set());
     }
-    for (const binding of this.dataBindings) {
-      const sourceNode = this.nodesById.get(binding.sourceNodeId);
+    for (const stream of this.streams) {
+      const sourceNode = this.nodesById.get(stream.sourceNodeId);
       if (!sourceNode) {
         throw new InvariantViolationError(
-          `Binding references unknown source node "${binding.sourceNodeId}"`,
+          `Stream references unknown source node "${stream.sourceNodeId}"`,
         );
       }
-      if (binding.sourceOutput && !sourceNode.hasOutput(binding.sourceOutput)) {
-        throw new InvariantViolationError(
-          `Binding references missing output "${binding.sourceOutput}" on node "${sourceNode.id}"`,
-        );
-      }
-      const targetNode = this.nodesById.get(binding.targetNodeId);
+      const targetNode = this.nodesById.get(stream.targetNodeId);
       if (!targetNode) {
         throw new InvariantViolationError(
-          `Binding references unknown target node "${binding.targetNodeId}"`,
+          `Stream references unknown target node "${stream.targetNodeId}"`,
         );
       }
-      if (!targetNode.getInputNames().includes(binding.targetInput)) {
+      if (stream.sourceNodeId === stream.targetNodeId) {
         throw new InvariantViolationError(
-          `Binding references missing input "${binding.targetInput}" on node "${targetNode.id}"`,
+          `Stream on node "${targetNode.id}" cannot reference itself`,
         );
       }
-      coverage.get(binding.targetNodeId).add(binding.targetInput);
-    }
-
-    for (const node of this.nodes) {
-      const requiredInputs = node.getRequiredInputs();
-      if (requiredInputs.length === 0) continue;
-      const satisfied = coverage.get(node.id) ?? new Set();
-      const missing = requiredInputs.filter(
-        (inputName) => !satisfied.has(inputName),
-      );
-      if (missing.length > 0) {
+      const bucket = coverage.get(stream.targetNodeId) ?? new Set();
+      if (bucket.has(stream.sourceNodeId)) {
         throw new InvariantViolationError(
-          `Node "${node.id}" has unresolved inputs: ${missing.join(", ")}`,
+          `Node "${targetNode.id}" already receives data from "${stream.sourceNodeId}"`,
         );
       }
+      bucket.add(stream.sourceNodeId);
+      coverage.set(stream.targetNodeId, bucket);
     }
   }
 
@@ -192,7 +176,7 @@ export default class Workflow {
     return [...this.nodes];
   }
 
-  getDataBindings() {
-    return [...this.dataBindings];
+  getStreams() {
+    return [...this.streams];
   }
 }

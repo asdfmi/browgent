@@ -21,14 +21,14 @@ export default class WorkflowFactory {
       name: payload.name,
       nodes: payload.nodes ?? [],
       edges: payload.edges ?? [],
-      dataBindings: payload.dataBindings ?? [],
+      streams: payload.streams ?? [],
     });
     await this.workflowRepo.save({
       workflow: structure.workflow,
       definition: {
         nodes: structure.nodes,
         edges: structure.edges,
-        dataBindings: structure.dataBindings,
+        streams: structure.streams,
       },
       metadata: { description: payload.description ?? null },
     });
@@ -54,13 +54,13 @@ export default class WorkflowFactory {
       fromNodeId: nodeIdMap.get(edge.fromNodeId),
       toNodeId: edge.toNodeId ? nodeIdMap.get(edge.toNodeId) : null,
     }));
-    const duplicatedBindings = source.definition.dataBindings.map(
-      (binding) => ({
-        ...binding,
+    const duplicatedStreams = source.definition.streams.map(
+      (stream) => ({
+        ...stream,
         id: this.idGenerator(),
         workflowId,
-        sourceNodeId: nodeIdMap.get(binding.sourceNodeId),
-        targetNodeId: nodeIdMap.get(binding.targetNodeId),
+        sourceNodeId: nodeIdMap.get(stream.sourceNodeId),
+        targetNodeId: nodeIdMap.get(stream.targetNodeId),
       }),
     );
     const structure = normalizeWorkflowStructure({
@@ -68,14 +68,14 @@ export default class WorkflowFactory {
       name: overrides.name ?? `${source.metadata.name} Copy`,
       nodes: duplicatedNodes,
       edges: duplicatedEdges,
-      dataBindings: duplicatedBindings,
+      streams: duplicatedStreams,
     });
     await this.workflowRepo.save({
       workflow: structure.workflow,
       definition: {
         nodes: structure.nodes,
         edges: structure.edges,
-        dataBindings: structure.dataBindings,
+        streams: structure.streams,
       },
       metadata: {
         description:
@@ -92,14 +92,14 @@ export default class WorkflowFactory {
       name: payload.name ?? current.metadata.name,
       nodes: payload.nodes ?? current.definition.nodes,
       edges: payload.edges ?? current.definition.edges,
-      dataBindings: payload.dataBindings ?? current.definition.dataBindings,
+      streams: payload.streams ?? current.definition.streams,
     });
     await this.workflowRepo.save({
       workflow: structure.workflow,
       definition: {
         nodes: structure.nodes,
         edges: structure.edges,
-        dataBindings: structure.dataBindings,
+        streams: structure.streams,
       },
       metadata: {
         description:
@@ -154,7 +154,7 @@ export default class WorkflowFactory {
       updatedAt: metadata.updatedAt,
       nodes: definition.nodes,
       edges: definition.edges,
-      dataBindings: definition.dataBindings,
+      streams: definition.streams,
     };
   }
 }

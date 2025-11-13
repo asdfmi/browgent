@@ -37,11 +37,11 @@ export default class WorkflowExecutor {
     this.events = null;
     this.cursor = null;
     this.expressionCache = new Map();
-    const bindingSource =
-      typeof workflow?.getDataBindings === "function"
-        ? workflow.getDataBindings()
-        : (workflow?.dataBindings ?? []);
-    this.bindingTargets = WorkflowExecutor.#indexBindings(bindingSource);
+    const streamSource =
+      typeof workflow?.getStreams === "function"
+        ? workflow.getStreams()
+        : workflow?.streams ?? [];
+    this.streamTargets = WorkflowExecutor.#indexStreams(streamSource);
   }
 
   async run() {
@@ -172,63 +172,43 @@ export default class WorkflowExecutor {
 
   #buildInputValues(stepId) {
     if (!stepId) return null;
-    const bindings = this.bindingTargets.get(stepId);
-    if (!bindings || bindings.length === 0) {
+    const streams = this.streamTargets.get(stepId);
+    if (!streams || streams.length === 0) {
       return null;
     }
     const inputs = {};
-    for (const binding of bindings) {
-      const value = this.#resolveBindingValue(binding);
-      WorkflowExecutor.#appendInputValue(inputs, binding.targetInput, value);
+    for (const stream of streams) {
+      const value = this.#resolveStreamValue(stream);
+      inputs[stream.sourceNodeId] = value;
     }
     return Object.keys(inputs).length > 0 ? inputs : null;
   }
 
-  #resolveBindingValue(binding) {
-    if (!binding) {
+  #resolveStreamValue(stream) {
+    if (!stream) {
       return undefined;
     }
     const sourceExecution = this.workflowExecution.getNodeExecution(
-      binding.sourceNodeId,
+      stream.sourceNodeId,
     );
     if (!sourceExecution || typeof sourceExecution.outputs === "undefined") {
       throw new Error(
-        `Binding source "${binding.sourceNodeId}" has no outputs available`,
+        `Stream source "${stream.sourceNodeId}" has no outputs available`,
       );
     }
     const payload = sourceExecution.outputs;
-    if (!binding.sourceOutput) {
-      if (typeof payload === "undefined") {
-        throw new Error(
-          `Binding source "${binding.sourceNodeId}" did not yield a value`,
-        );
+    if (typeof payload === "undefined") {
+      throw new Error(
+        `Stream source "${stream.sourceNodeId}" did not yield a value`,
+      );
+    }
+    if (payload && typeof payload === "object") {
+      const keys = Object.keys(payload);
+      if (keys.length === 1) {
+        return payload[keys[0]];
       }
-      return payload;
     }
-    if (!payload || typeof payload !== "object") {
-      throw new Error(
-        `Binding source "${binding.sourceNodeId}" does not expose named outputs`,
-      );
-    }
-    if (!Object.prototype.hasOwnProperty.call(payload, binding.sourceOutput)) {
-      throw new Error(
-        `Binding source "${binding.sourceNodeId}" missing output "${binding.sourceOutput}"`,
-      );
-    }
-    return payload[binding.sourceOutput];
-  }
-
-  static #appendInputValue(bucket, inputName, value) {
-    const key = inputName;
-    if (!bucket[key]) {
-      bucket[key] = value;
-      return;
-    }
-    if (Array.isArray(bucket[key])) {
-      bucket[key].push(value);
-      return;
-    }
-    bucket[key] = [bucket[key], value];
+    return payload;
   }
 
   #buildAdvanceContext(step, outcome) {
@@ -312,19 +292,19 @@ export default class WorkflowExecutor {
     return fn;
   }
 
-  static #indexBindings(bindings = []) {
+  static #indexStreams(streams = []) {
     const map = new Map();
-    for (const binding of bindings) {
+    for (const stream of streams) {
       if (
-        !binding ||
-        typeof binding.targetNodeId !== "string" ||
-        !binding.targetNodeId
+        !stream ||
+        typeof stream.targetNodeId !== "string" ||
+        !stream.targetNodeId
       ) {
         continue;
       }
-      const existing = map.get(binding.targetNodeId) ?? [];
-      existing.push(binding);
-      map.set(binding.targetNodeId, existing);
+      const existing = map.get(stream.targetNodeId) ?? [];
+      existing.push(stream);
+      map.set(stream.targetNodeId, existing);
     }
     return map;
   }

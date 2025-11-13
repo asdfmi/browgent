@@ -14,8 +14,8 @@ export default function ScriptConfigFields({ config, onChange }) {
         multiline
       />
       <Typography color="text.secondary">
-        Provide inputs via data bindings. The script return value is published
-        on the `result` output port.
+        Provide inputs via streams. The script return value is published on the
+        `result` stream.
       </Typography>
     </>
   );

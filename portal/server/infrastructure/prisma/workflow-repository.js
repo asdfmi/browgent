@@ -29,7 +29,7 @@ export default class PrismaWorkflowRepository extends WorkflowRepositoryContract
       });
       await tx.workflowNode.deleteMany({ where: { workflowId: workflow.id } });
       await tx.workflowEdge.deleteMany({ where: { workflowId: workflow.id } });
-      await tx.workflowDataBinding.deleteMany({
+      await tx.workflowStream.deleteMany({
         where: { workflowId: workflow.id },
       });
       if (definition.nodes.length > 0) {
@@ -40,8 +40,6 @@ export default class PrismaWorkflowRepository extends WorkflowRepositoryContract
             name: node.name,
             type: node.type,
             config: node.config ?? null,
-            inputs: node.inputs ?? [],
-            outputs: node.outputs ?? [],
             positionX:
               typeof node.positionX === "number" ? node.positionX : null,
             positionY:
@@ -61,16 +59,13 @@ export default class PrismaWorkflowRepository extends WorkflowRepositoryContract
           })),
         });
       }
-      if (definition.dataBindings.length > 0) {
-        await tx.workflowDataBinding.createMany({
-          data: definition.dataBindings.map((binding) => ({
-            id: binding.id,
+      if (definition.streams.length > 0) {
+        await tx.workflowStream.createMany({
+          data: definition.streams.map((stream) => ({
+            id: stream.id,
             workflowId: workflow.id,
-            sourceNodeId: binding.sourceNodeId,
-            sourceOutput: binding.sourceOutput ?? null,
-            targetNodeId: binding.targetNodeId,
-            targetInput: binding.targetInput,
-            transform: binding.transform ?? null,
+            sourceNodeId: stream.sourceNodeId,
+            targetNodeId: stream.targetNodeId,
           })),
         });
       }
@@ -84,23 +79,23 @@ export default class PrismaWorkflowRepository extends WorkflowRepositoryContract
       where: { id: workflowId },
     });
     if (!workflowRecord) return null;
-    const [nodes, edges, dataBindings] = await Promise.all([
+    const [nodes, edges, streams] = await Promise.all([
       client.workflowNode.findMany({ where: { workflowId } }),
       client.workflowEdge.findMany({ where: { workflowId } }),
-      client.workflowDataBinding.findMany({ where: { workflowId } }),
+      client.workflowStream.findMany({ where: { workflowId } }),
     ]);
     const workflow = toDomainWorkflow({
       workflowRecord,
       nodeRecords: nodes,
       edgeRecords: edges,
-      bindingRecords: dataBindings,
+      streamRecords: streams,
     });
     return {
       workflow,
       definition: {
         nodes,
         edges,
-        dataBindings,
+        streams,
       },
       metadata: {
         id: workflowRecord.id,

@@ -13,8 +13,8 @@ export default function ExtractTextConfigFields({ config, onChange }) {
         onChange={(event) => setConfig({ xpath: event.target.value })}
       />
       <Typography color="text.secondary">
-        Extracted text is exposed via the `text` output port and can be wired to
-        other nodes using data bindings.
+        Extracted text is exposed via the node&apos;s stream and can be wired to
+        other nodes using streams.
       </Typography>
     </>
   );

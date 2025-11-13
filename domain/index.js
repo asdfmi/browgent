@@ -14,7 +14,7 @@ export {
   default as Condition,
   CONDITION_TYPES,
 } from "./value-objects/condition.js";
-export { default as DataBinding } from "./value-objects/data-binding.js";
+export { default as Stream } from "./value-objects/stream.js";
 export { default as ExecutionResult } from "./value-objects/execution-result.js";
 export { default as Metric } from "./value-objects/metric.js";
 export { default as WorkflowPlan } from "./services/workflow-plan.js";

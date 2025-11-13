@@ -1,44 +1,15 @@
 import { randomUUID } from "node:crypto";
 import Workflow from "../aggregates/workflow.js";
 import Edge from "../value-objects/edge.js";
-import DataBinding from "../value-objects/data-binding.js";
+import Stream from "../value-objects/stream.js";
 import { ValidationError } from "../errors.js";
 import NodeFactory from "../factories/node-factory.js";
-import { getNodePorts } from "../value-objects/node-configs/node-ports.js";
-
-const toArray = (value) =>
-  Array.isArray(value) ? value : value ? [value] : [];
 
 const toFiniteNumber = (value) => {
   if (value === null || value === undefined) return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
 };
-
-function normalizePorts(ports, fallbackRequired) {
-  return toArray(ports).map((port, index) => {
-    if (typeof port === "string") {
-      return { name: port, required: fallbackRequired };
-    }
-    if (port && typeof port === "object") {
-      const name =
-        typeof port.name === "string" && port.name.trim()
-          ? port.name.trim()
-          : null;
-      if (!name) {
-        throw new ValidationError(`Port #${index + 1} is missing name`);
-      }
-      return {
-        name,
-        required:
-          port.required === undefined
-            ? fallbackRequired
-            : Boolean(port.required),
-      };
-    }
-    throw new ValidationError("Port definition must be a string or object");
-  });
-}
 
 function normalizeNodeConfigShape(type, config) {
   if (!config || typeof config !== "object") {
@@ -143,20 +114,20 @@ function pickNodeRef(edgeInput, index, key, map) {
   return resolved;
 }
 
-function resolveBindingNode(binding, key, map, index) {
+function resolveStreamNode(stream, key, map, index) {
   const raw =
-    binding?.[key] ??
-    binding?.[`${key}NodeId`] ??
-    binding?.[key === "sourceNodeId" ? "from" : "to"] ??
-    binding?.[key === "sourceNodeId" ? "source" : "target"];
+    stream?.[key] ??
+    stream?.[`${key}NodeId`] ??
+    stream?.[key === "sourceNodeId" ? "from" : "to"] ??
+    stream?.[key === "sourceNodeId" ? "source" : "target"];
   if (!raw || typeof raw !== "string" || !raw.trim()) {
-    throw new ValidationError(`DataBinding[${index + 1}] is missing ${key}`);
+    throw new ValidationError(`Stream[${index + 1}] is missing ${key}`);
   }
   const normalized = raw.trim();
   const resolved = map.get(normalized);
   if (!resolved) {
     throw new ValidationError(
-      `DataBinding[${index + 1}] references unknown node "${normalized}"`,
+      `Stream[${index + 1}] references unknown node "${normalized}"`,
     );
   }
   return resolved;
@@ -167,7 +138,7 @@ export function normalizeWorkflowStructure({
   name,
   nodes = [],
   edges = [],
-  dataBindings = [],
+  streams = [],
 }) {
   if (!workflowId || typeof workflowId !== "string") {
     throw new ValidationError("workflowId is required");
@@ -228,24 +199,12 @@ export function normalizeWorkflowStructure({
       normalizedType,
       waitAdjusted.config ?? null,
     );
-    const { inputs: defaultInputs, outputs: defaultOutputs } =
-      getNodePorts(normalizedType);
-    const rawInputs =
-      Array.isArray(nodeInput.inputs) && nodeInput.inputs.length > 0
-        ? nodeInput.inputs
-        : defaultInputs;
-    const rawOutputs =
-      Array.isArray(nodeInput.outputs) && nodeInput.outputs.length > 0
-        ? nodeInput.outputs
-        : defaultOutputs;
     return {
       id,
       nodeKey: providedKey ?? id,
       workflowId,
       name: labelled,
       type: normalizedType,
-      inputs: normalizePorts(rawInputs, true),
-      outputs: normalizePorts(rawOutputs, false),
       config: normalizedConfig,
       positionX,
       positionY,
@@ -292,43 +251,35 @@ export function normalizeWorkflowStructure({
     };
   });
 
-  const normalizedBindings = dataBindings.map((bindingInput, index) => {
-    if (!bindingInput || typeof bindingInput !== "object") {
-      throw new ValidationError(`DataBinding[${index + 1}] must be an object`);
+  const normalizedStreams = streams.map((streamInput, index) => {
+    if (!streamInput || typeof streamInput !== "object") {
+      throw new ValidationError(`Stream[${index + 1}] must be an object`);
     }
-    const sourceNodeId = resolveBindingNode(
-      bindingInput,
+    const sourceNodeId = resolveStreamNode(
+      streamInput,
       "sourceNodeId",
       nodeKeyMap,
       index,
     );
-    const targetNodeId = resolveBindingNode(
-      bindingInput,
+    const targetNodeId = resolveStreamNode(
+      streamInput,
       "targetNodeId",
       nodeKeyMap,
       index,
     );
-    const targetInput =
-      typeof bindingInput.targetInput === "string" &&
-      bindingInput.targetInput.trim()
-        ? bindingInput.targetInput.trim()
-        : null;
-    if (!targetInput) {
+    if (sourceNodeId === targetNodeId) {
       throw new ValidationError(
-        `DataBinding[${index + 1}] requires targetInput`,
+        `Stream[${index + 1}] source and target cannot match`,
       );
     }
     return {
       id:
-        typeof bindingInput.id === "string" && bindingInput.id.trim()
-          ? bindingInput.id.trim()
+        typeof streamInput.id === "string" && streamInput.id.trim()
+          ? streamInput.id.trim()
           : randomUUID(),
       workflowId,
       sourceNodeId,
-      sourceOutput: bindingInput.sourceOutput ?? null,
       targetNodeId,
-      targetInput,
-      transform: bindingInput.transform ?? null,
     };
   });
 
@@ -340,8 +291,6 @@ export function normalizeWorkflowStructure({
         id: node.id,
         name: node.name,
         type: node.type,
-        inputs: node.inputs,
-        outputs: node.outputs,
         config: node.config,
       }),
     ),
@@ -354,14 +303,11 @@ export function normalizeWorkflowStructure({
           priority: edge.priority,
         }),
     ),
-    dataBindings: normalizedBindings.map(
-      (binding) =>
-        new DataBinding({
-          sourceNodeId: binding.sourceNodeId,
-          sourceOutput: binding.sourceOutput,
-          targetNodeId: binding.targetNodeId,
-          targetInput: binding.targetInput,
-          transform: binding.transform,
+    streams: normalizedStreams.map(
+      (stream) =>
+        new Stream({
+          sourceNodeId: stream.sourceNodeId,
+          targetNodeId: stream.targetNodeId,
         }),
     ),
   });
@@ -370,7 +316,7 @@ export function normalizeWorkflowStructure({
     workflow,
     nodes: normalizedNodes,
     edges: normalizedEdges,
-    dataBindings: normalizedBindings,
+    streams: normalizedStreams,
   };
 }
 
@@ -385,6 +331,6 @@ export function serializeWorkflow(metadata, structure) {
       metadata.updatedAt?.toISOString?.() ?? metadata.updatedAt ?? null,
     nodes: structure.nodes,
     edges: structure.edges,
-    dataBindings: structure.dataBindings,
+    streams: structure.streams,
   };
 }
