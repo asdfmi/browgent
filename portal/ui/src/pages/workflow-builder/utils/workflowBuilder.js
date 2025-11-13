@@ -92,12 +92,8 @@ export function toEditableStream(stream, index = 0) {
       : typeof stream.id === "string" && stream.id.trim()
         ? stream.id.trim()
         : `stream_${index + 1}`;
-  const sourceKey = String(
-    stream.sourceKey ?? stream.sourceNodeId ?? "",
-  ).trim();
-  const targetKey = String(
-    stream.targetKey ?? stream.targetNodeId ?? "",
-  ).trim();
+  const sourceKey = String(stream.sourceKey ?? stream.fromNodeId ?? "").trim();
+  const targetKey = String(stream.targetKey ?? stream.toNodeId ?? "").trim();
   return {
     streamKey,
     sourceKey,
@@ -399,11 +395,9 @@ function normalizeStreamPayload(streamInputs = [], nodes = []) {
       return;
     }
     const sourceKey = String(
-      stream.sourceKey ?? stream.sourceNodeId ?? "",
+      stream.sourceKey ?? stream.fromNodeId ?? "",
     ).trim();
-    const targetKey = String(
-      stream.targetKey ?? stream.targetNodeId ?? "",
-    ).trim();
+    const targetKey = String(stream.targetKey ?? stream.toNodeId ?? "").trim();
     if (!sourceKey || !targetKey) {
       errors.push(
         `Stream ${index + 1}: source node and target node are required`,
@@ -447,8 +441,8 @@ function normalizeStreamPayload(streamInputs = [], nodes = []) {
           : generateLocalId(`stream_${index + 1}`);
     streams.push({
       id: streamId,
-      sourceNodeId: sourceKey,
-      targetNodeId: targetKey,
+      fromNodeId: sourceKey,
+      toNodeId: targetKey,
     });
   });
 

@@ -2,15 +2,9 @@ import { requireNonEmptyString } from "../utils/validation.js";
 import { ValidationError } from "../errors.js";
 
 export default class Stream {
-  constructor({ sourceNodeId, targetNodeId }) {
-    this.sourceNodeId = requireNonEmptyString(
-      sourceNodeId,
-      "Stream.sourceNodeId",
-    );
-    this.targetNodeId = requireNonEmptyString(
-      targetNodeId,
-      "Stream.targetNodeId",
-    );
+  constructor({ fromNodeId, toNodeId }) {
+    this.fromNodeId = requireNonEmptyString(fromNodeId, "Stream.fromNodeId");
+    this.toNodeId = requireNonEmptyString(toNodeId, "Stream.toNodeId");
     Object.freeze(this);
   }
 

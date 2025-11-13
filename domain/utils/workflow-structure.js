@@ -115,15 +115,15 @@ function pickNodeRef(edgeInput, index, key, map) {
 }
 
 function resolveStreamNode(stream, key, map, index) {
-  const raw =
-    stream?.[key] ??
-    stream?.[`${key}NodeId`] ??
-    stream?.[key === "sourceNodeId" ? "from" : "to"] ??
-    stream?.[key === "sourceNodeId" ? "source" : "target"];
-  if (!raw || typeof raw !== "string" || !raw.trim()) {
+  const aliases =
+    key === "fromNodeId" ? ["fromNodeId", "from"] : ["toNodeId", "to"];
+  const rawCandidate = aliases
+    .map((candidateKey) => stream?.[candidateKey])
+    .find((value) => typeof value === "string" && value.trim());
+  if (!rawCandidate) {
     throw new ValidationError(`Stream[${index + 1}] is missing ${key}`);
   }
-  const normalized = raw.trim();
+  const normalized = rawCandidate.trim();
   const resolved = map.get(normalized);
   if (!resolved) {
     throw new ValidationError(
@@ -255,19 +255,19 @@ export function normalizeWorkflowStructure({
     if (!streamInput || typeof streamInput !== "object") {
       throw new ValidationError(`Stream[${index + 1}] must be an object`);
     }
-    const sourceNodeId = resolveStreamNode(
+    const fromNodeId = resolveStreamNode(
       streamInput,
-      "sourceNodeId",
+      "fromNodeId",
       nodeKeyMap,
       index,
     );
-    const targetNodeId = resolveStreamNode(
+    const toNodeId = resolveStreamNode(
       streamInput,
-      "targetNodeId",
+      "toNodeId",
       nodeKeyMap,
       index,
     );
-    if (sourceNodeId === targetNodeId) {
+    if (fromNodeId === toNodeId) {
       throw new ValidationError(
         `Stream[${index + 1}] source and target cannot match`,
       );
@@ -278,8 +278,8 @@ export function normalizeWorkflowStructure({
           ? streamInput.id.trim()
           : randomUUID(),
       workflowId,
-      sourceNodeId,
-      targetNodeId,
+      fromNodeId,
+      toNodeId,
     };
   });
 
@@ -306,8 +306,8 @@ export function normalizeWorkflowStructure({
     streams: normalizedStreams.map(
       (stream) =>
         new Stream({
-          sourceNodeId: stream.sourceNodeId,
-          targetNodeId: stream.targetNodeId,
+          fromNodeId: stream.fromNodeId,
+          toNodeId: stream.toNodeId,
         }),
     ),
   });

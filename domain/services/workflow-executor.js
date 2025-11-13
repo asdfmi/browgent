@@ -40,7 +40,7 @@ export default class WorkflowExecutor {
     const streamSource =
       typeof workflow?.getStreams === "function"
         ? workflow.getStreams()
-        : workflow?.streams ?? [];
+        : (workflow?.streams ?? []);
     this.streamTargets = WorkflowExecutor.#indexStreams(streamSource);
   }
 
@@ -179,7 +179,7 @@ export default class WorkflowExecutor {
     const inputs = {};
     for (const stream of streams) {
       const value = this.#resolveStreamValue(stream);
-      inputs[stream.sourceNodeId] = value;
+      inputs[stream.fromNodeId] = value;
     }
     return Object.keys(inputs).length > 0 ? inputs : null;
   }
@@ -189,17 +189,17 @@ export default class WorkflowExecutor {
       return undefined;
     }
     const sourceExecution = this.workflowExecution.getNodeExecution(
-      stream.sourceNodeId,
+      stream.fromNodeId,
     );
     if (!sourceExecution || typeof sourceExecution.outputs === "undefined") {
       throw new Error(
-        `Stream source "${stream.sourceNodeId}" has no outputs available`,
+        `Stream source "${stream.fromNodeId}" has no outputs available`,
       );
     }
     const payload = sourceExecution.outputs;
     if (typeof payload === "undefined") {
       throw new Error(
-        `Stream source "${stream.sourceNodeId}" did not yield a value`,
+        `Stream source "${stream.fromNodeId}" did not yield a value`,
       );
     }
     if (payload && typeof payload === "object") {
@@ -295,16 +295,12 @@ export default class WorkflowExecutor {
   static #indexStreams(streams = []) {
     const map = new Map();
     for (const stream of streams) {
-      if (
-        !stream ||
-        typeof stream.targetNodeId !== "string" ||
-        !stream.targetNodeId
-      ) {
+      if (!stream || typeof stream.toNodeId !== "string" || !stream.toNodeId) {
         continue;
       }
-      const existing = map.get(stream.targetNodeId) ?? [];
+      const existing = map.get(stream.toNodeId) ?? [];
       existing.push(stream);
-      map.set(stream.targetNodeId, existing);
+      map.set(stream.toNodeId, existing);
     }
     return map;
   }

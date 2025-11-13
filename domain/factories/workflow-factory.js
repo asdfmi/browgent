@@ -54,15 +54,13 @@ export default class WorkflowFactory {
       fromNodeId: nodeIdMap.get(edge.fromNodeId),
       toNodeId: edge.toNodeId ? nodeIdMap.get(edge.toNodeId) : null,
     }));
-    const duplicatedStreams = source.definition.streams.map(
-      (stream) => ({
-        ...stream,
-        id: this.idGenerator(),
-        workflowId,
-        sourceNodeId: nodeIdMap.get(stream.sourceNodeId),
-        targetNodeId: nodeIdMap.get(stream.targetNodeId),
-      }),
-    );
+    const duplicatedStreams = source.definition.streams.map((stream) => ({
+      ...stream,
+      id: this.idGenerator(),
+      workflowId,
+      fromNodeId: nodeIdMap.get(stream.fromNodeId),
+      toNodeId: nodeIdMap.get(stream.toNodeId),
+    }));
     const structure = normalizeWorkflowStructure({
       workflowId,
       name: overrides.name ?? `${source.metadata.name} Copy`,

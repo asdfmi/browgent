@@ -29,11 +29,11 @@ model WorkflowNode {
   positionY  Float?
   createdAt  DateTime @default(now())
 
-  workflow Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  outEdges WorkflowEdge[] @relation("edge_from")
-  inEdges  WorkflowEdge[] @relation("edge_to")
-  streamsSource WorkflowStream[] @relation("stream_source")
-  streamsTarget WorkflowStream[] @relation("stream_target")
+  workflow   Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  outEdges   WorkflowEdge[]   @relation("edge_from")
+  inEdges    WorkflowEdge[]   @relation("edge_to")
+  outStreams WorkflowStream[] @relation("stream_from")
+  inStreams  WorkflowStream[] @relation("stream_to")
 }
 
 model WorkflowEdge {
@@ -45,23 +45,19 @@ model WorkflowEdge {
   priority    Int?
   createdAt   DateTime @default(now())
 
-  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workflow Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   fromNode WorkflowNode @relation("edge_from", fields: [fromNodeId], references: [id], onDelete: Cascade)
   toNode   WorkflowNode @relation("edge_to", fields: [toNodeId], references: [id], onDelete: Cascade)
-
-  @@index([workflowId])
 }
 
 model WorkflowStream {
-  id           String   @id @default(uuid())
-  workflowId   String
-  sourceNodeId String
-  targetNodeId String
-  createdAt    DateTime @default(now())
+  id         String   @id @default(uuid())
+  workflowId String
+  fromNodeId String
+  toNodeId   String
+  createdAt  DateTime @default(now())
 
-  workflow   Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  sourceNode WorkflowNode @relation("stream_source", fields: [sourceNodeId], references: [id], onDelete: Cascade)
-  targetNode WorkflowNode @relation("stream_target", fields: [targetNodeId], references: [id], onDelete: Cascade)
-
-  @@index([workflowId])
+  workflow Workflow     @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  fromNode WorkflowNode @relation("stream_from", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   WorkflowNode @relation("stream_to", fields: [toNodeId], references: [id], onDelete: Cascade)
 }

@@ -30,8 +30,8 @@ export function toDomainWorkflow({
     streams: streamRecords.map(
       (stream) =>
         new Stream({
-          sourceNodeId: stream.sourceNodeId,
-          targetNodeId: stream.targetNodeId,
+          fromNodeId: stream.fromNodeId,
+          toNodeId: stream.toNodeId,
         }),
     ),
   });

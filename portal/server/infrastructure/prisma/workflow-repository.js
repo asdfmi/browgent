@@ -64,8 +64,8 @@ export default class PrismaWorkflowRepository extends WorkflowRepositoryContract
           data: definition.streams.map((stream) => ({
             id: stream.id,
             workflowId: workflow.id,
-            sourceNodeId: stream.sourceNodeId,
-            targetNodeId: stream.targetNodeId,
+            fromNodeId: stream.fromNodeId,
+            toNodeId: stream.toNodeId,
           })),
         });
       }

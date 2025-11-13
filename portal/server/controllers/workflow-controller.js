@@ -134,9 +134,7 @@ function buildDefinitionPayload(workflowId, payload) {
       typeof payload.description === "string" ? payload.description : null,
     nodes,
     edges,
-    streams: Array.isArray(payload.streams)
-      ? payload.streams
-      : [],
+    streams: Array.isArray(payload.streams) ? payload.streams : [],
   };
 }
 
@@ -291,8 +289,8 @@ function toBuilderStream(stream, index) {
     streamKey: String(
       stream?.streamKey || stream?.id || `stream_${index + 1}`,
     ).trim(),
-    sourceKey: String(stream?.sourceKey || stream?.sourceNodeId || "").trim(),
-    targetKey: String(stream?.targetKey || stream?.targetNodeId || "").trim(),
+    sourceKey: String(stream?.sourceKey || stream?.fromNodeId || "").trim(),
+    targetKey: String(stream?.targetKey || stream?.toNodeId || "").trim(),
   };
 }
 

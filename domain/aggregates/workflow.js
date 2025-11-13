@@ -124,31 +124,31 @@ export default class Workflow {
       coverage.set(node.id, new Set());
     }
     for (const stream of this.streams) {
-      const sourceNode = this.nodesById.get(stream.sourceNodeId);
+      const sourceNode = this.nodesById.get(stream.fromNodeId);
       if (!sourceNode) {
         throw new InvariantViolationError(
-          `Stream references unknown source node "${stream.sourceNodeId}"`,
+          `Stream references unknown source node "${stream.fromNodeId}"`,
         );
       }
-      const targetNode = this.nodesById.get(stream.targetNodeId);
+      const targetNode = this.nodesById.get(stream.toNodeId);
       if (!targetNode) {
         throw new InvariantViolationError(
-          `Stream references unknown target node "${stream.targetNodeId}"`,
+          `Stream references unknown target node "${stream.toNodeId}"`,
         );
       }
-      if (stream.sourceNodeId === stream.targetNodeId) {
+      if (stream.fromNodeId === stream.toNodeId) {
         throw new InvariantViolationError(
           `Stream on node "${targetNode.id}" cannot reference itself`,
         );
       }
-      const bucket = coverage.get(stream.targetNodeId) ?? new Set();
-      if (bucket.has(stream.sourceNodeId)) {
+      const bucket = coverage.get(stream.toNodeId) ?? new Set();
+      if (bucket.has(stream.fromNodeId)) {
         throw new InvariantViolationError(
-          `Node "${targetNode.id}" already receives data from "${stream.sourceNodeId}"`,
+          `Node "${targetNode.id}" already receives data from "${stream.fromNodeId}"`,
         );
       }
-      bucket.add(stream.sourceNodeId);
-      coverage.set(stream.targetNodeId, bucket);
+      bucket.add(stream.fromNodeId);
+      coverage.set(stream.toNodeId, bucket);
     }
   }
 

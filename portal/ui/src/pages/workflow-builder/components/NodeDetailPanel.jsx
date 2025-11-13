@@ -93,8 +93,8 @@ export default function NodeDetailPanel({
         const sourceKey =
           typeof stream?.sourceKey === "string"
             ? stream.sourceKey
-            : typeof stream?.sourceNodeId === "string"
-              ? stream.sourceNodeId
+            : typeof stream?.fromNodeId === "string"
+              ? stream.fromNodeId
               : "";
         return {
           ...stream,
